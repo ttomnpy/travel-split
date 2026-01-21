@@ -1,0 +1,78 @@
+{
+  "common": {
+    "appName": "Travel Split",
+    "appDescription": "Travel Expense Tracker",
+    "logout": "Logout",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "login": "Login",
+    "signup": "Sign Up",
+    "loginSubtitle": "Travel Expense Tracker",
+    "noAccount": "Don't have an account?",
+    "haveAccount": "Already have an account?",
+    "or": "Or",
+    "googleLogin": "Sign in with Google",
+    "processing": "Processing...",
+    "emailPlaceholder": "your@email.com",
+    "passwordPlaceholder": "••••••••",
+    "passwordRequirements": "Password Requirements",
+    "passwordRequirement": {
+      "minLength": "At least 8 characters",
+      "hasUpperCase": "At least one uppercase letter (A-Z)",
+      "hasLowerCase": "At least one lowercase letter (a-z)",
+      "hasNumber": "At least one number (0-9)",
+      "hasSpecialChar": "At least one special character (!@#$%^&*)"
+    },
+    "passwordMismatch": "Passwords do not match"
+  },
+  "errors": {
+    "auth/user-not-found": "Account not found",
+    "auth/wrong-password": "Wrong password",
+    "auth/email-already-in-use": "Email already in use",
+    "auth/weak-password": "Password must be at least 6 characters",
+    "auth/invalid-email": "Invalid email format",
+    "auth/operation-not-supported-in-this-environment": "This operation is not supported in your browser. Please try updating your browser.",
+    "auth/unauthorized-domain": "This domain is not authorized for Google Sign-In. Please contact the app administrator.",
+    "auth/network-request-failed": "Network connection failed. Please check your internet connection.",
+    "email_not_verified": "Please verify your email first. Check your inbox for the verification email.",
+    "verification_sent": "✓ Verification email sent! Please check your inbox and click the verification link.",
+    "verification_complete": "✓ Email verification successful! You can now login.",
+    "popup-closed": "Sign in cancelled",
+    "generic": "An error occurred, please try again later"
+  },
+  "verification": {
+    "title": "Verify Your Email",
+    "subtitle": "We've sent a verification email to:",
+    "instructions": "Verification Instructions",
+    "step1": "Check your inbox (or spam folder)",
+    "step2": "Click the verification link in the email",
+    "step3": "Return to this app and click \"Verification Complete\" button",
+    "checkButton": "✓ Verification Complete",
+    "checking": "Checking...",
+    "resendButton": "Resend Verification Email",
+    "resendCountdown": "Resend ({{countdown}}s)",
+    "backButton": "Back to Login",
+    "noEmail": "Didn't receive the email? Check spam folder or try again later.",
+    "notVerified": "✗ Email not verified. Please check your inbox and click the verification link.",
+    "verified": "✓ Email verified!",
+    "resendFailed": "Failed to resend, please try again later",
+    "resendSuccess": "✓ Verification email resent!",
+    "checkFailed": "✗ Failed to check verification status. Please try again later."
+  },
+  "home": {
+    "welcome": "Welcome, {{email}}",
+    "description": "Your travel expense tracking app is ready",
+    "comingSoon": "🚀 Features coming soon..."
+  }
+}

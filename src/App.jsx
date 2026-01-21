@@ -1,34 +1,40 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { LoadingSpinner } from './components'
+import { LoginPage, HomePage } from './pages'
+import { debugLog } from './utils/debug'
+import './styles/global.css'
+
+function AppContent() {
+  const { user, loading, logout } = useAuth()
+
+  if (loading) {
+    return <LoadingSpinner />
+  }
+
+  // Double security check - user must exist AND either be verified OR be a Google user
+  const isGoogleUser = user?.providerData?.some(provider => provider.providerId === 'google.com')
+  const isAuthorized = user && (user.emailVerified === true || isGoogleUser)
+  
+  debugLog('AppContent Render', { 
+    user: user?.email, 
+    emailVerified: user?.emailVerified, 
+    isGoogle: isGoogleUser,
+    isAuthorized 
+  })
+
+  if (!isAuthorized) {
+    debugLog('Unauthorized Access Attempt - Showing LoginPage', null)
+    return <LoginPage />
+  }
+
+  return <HomePage onLogout={logout} />
+}
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   )
 }
 

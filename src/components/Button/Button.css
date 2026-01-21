@@ -1,0 +1,90 @@
+.btn {
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  pointer-events: auto;
+}
+
+/* Variants */
+.btn-primary {
+  background: var(--primary-accent);
+  color: var(--bg-dark);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-secondary {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:active {
+  background: var(--border-color);
+}
+
+.btn-danger {
+  background: var(--error);
+  color: white;
+}
+
+.btn-danger:active {
+  transform: scale(0.98);
+}
+
+.btn-tertiary {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.btn-tertiary:active {
+  background: var(--bg-dark);
+}
+
+/* Sizes */
+.btn-sm {
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.btn-md {
+  padding: 12px 16px;
+  font-size: 14px;
+}
+
+.btn-lg {
+  padding: 16px 24px;
+  font-size: 16px;
+  width: 100%;
+}
+
+/* States */
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (min-width: 768px) {
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(212, 255, 0, 0.2);
+    background: var(--primary-accent-light);
+  }
+
+  .btn-secondary:hover {
+    background: var(--border-color);
+  }
+
+  .btn-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+  }
+}

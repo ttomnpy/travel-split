@@ -1,0 +1,143 @@
+/* Verification Page - Dark Theme */
+
+.verification-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-dark);
+  padding: 20px;
+}
+
+.verification-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--bg-card);
+  border-radius: 20px;
+  padding: 40px 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-color);
+  text-align: center;
+}
+
+/* Icon */
+.verification-icon {
+  font-size: 64px;
+  color: var(--primary-accent);
+  margin-bottom: 24px;
+  display: inline-block;
+}
+
+/* Title */
+.verification-card h1 {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+}
+
+.verification-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0 0 16px 0;
+}
+
+/* Email Display */
+.email-display {
+  background: var(--bg-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.email-display p {
+  margin: 0;
+  color: var(--primary-accent);
+  font-weight: 600;
+  font-size: 14px;
+  word-break: break-all;
+}
+
+/* Instructions */
+.verification-instructions {
+  background: rgba(255, 191, 0, 0.05);
+  border-left: 3px solid var(--primary-accent);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.verification-instructions ol {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.verification-instructions li {
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.verification-instructions li:last-child {
+  margin-bottom: 0;
+}
+
+/* Messages */
+.verification-message {
+  padding: 12px 16px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.verification-message.success {
+  background: rgba(76, 175, 80, 0.1);
+  color: #4caf50;
+  border-left: 3px solid #4caf50;
+}
+
+.verification-message.error {
+  background: rgba(255, 107, 107, 0.1);
+  color: #ff6b6b;
+  border-left: 3px solid #ff6b6b;
+}
+
+.verification-message.info {
+  background: rgba(33, 150, 243, 0.1);
+  color: #2196f3;
+  border-left: 3px solid #2196f3;
+}
+
+/* Buttons */
+.verification-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+/* Footer */
+.verification-footer {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Responsive */
+@media (min-width: 768px) {
+  .verification-card {
+    padding: 48px 32px;
+  }
+
+  .verification-card h1 {
+    font-size: 28px;
+  }
+
+  .verification-icon {
+    font-size: 72px;
+  }
+}

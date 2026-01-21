@@ -1,0 +1,206 @@
+/* Group Expense Card - Dark Theme Design */
+
+.expense-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.expense-card:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Card Header */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.group-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  flex: 1;
+  word-break: break-word;
+}
+
+.member-count {
+  background: var(--primary-accent);
+  color: var(--bg-dark);
+  font-size: 12px;
+  font-weight: 600;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Amount Section */
+.amount-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.amount-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.amount-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--primary-accent);
+  margin: 0;
+}
+
+/* Members Section */
+.members-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.members-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.members-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.member-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-darker);
+  border-radius: 12px;
+  min-height: 44px;
+}
+
+.member-avatar {
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--primary-accent);
+  color: var(--bg-dark);
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.member-name {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Action Button */
+.action-button {
+  background: var(--primary-accent);
+  color: var(--bg-dark);
+  border: none;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 44px;
+  font-family: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.action-button:active {
+  transform: scale(0.98);
+  background: #c8ed00;
+}
+
+/* Variants */
+.expense-card.highlight {
+  border-color: var(--primary-accent);
+  box-shadow: 0 4px 12px rgba(212, 255, 0, 0.15);
+}
+
+.expense-card.highlight .group-name {
+  color: var(--primary-accent-light);
+}
+
+/* Responsive */
+@media (min-width: 768px) {
+  .expense-card {
+    padding: 24px;
+    gap: 24px;
+  }
+
+  .expense-card:hover {
+    border-color: var(--primary-accent);
+    box-shadow: 0 8px 20px rgba(212, 255, 0, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .action-button:hover {
+    background: var(--primary-accent-light);
+    transform: translateY(-1px);
+  }
+
+  .member-item {
+    min-height: 40px;
+  }
+}
+
+/* Tablet Layout */
+@media (min-width: 640px) and (max-width: 767px) {
+  .expense-card {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .card-header {
+    grid-column: 1 / -1;
+  }
+
+  .amount-section {
+    grid-column: 1 / 2;
+  }
+
+  .members-section {
+    grid-column: 2 / 3;
+    grid-row: 2;
+  }
+
+  .action-button {
+    grid-column: 1 / -1;
+  }
+}
