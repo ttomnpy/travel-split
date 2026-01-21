@@ -1,10 +1,31 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { authService } from '../../services/authService'
 import { debugLog, debugError } from '../../utils/debug'
 import './GoogleLoginButton.css'
 
 function GoogleLoginButton({ onSuccess, onError }) {
   const [loading, setLoading] = useState(false)
+
+  // Reset loading state when user returns from redirect
+  useEffect(() => {
+    const handleFocus = () => {
+      setLoading(false)
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        setLoading(false)
+      }
+    }
+    
+    window.addEventListener('focus', handleFocus)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [])
 
   const handleGoogleLogin = async () => {
     setLoading(true)
