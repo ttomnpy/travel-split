@@ -8,6 +8,7 @@ import {
   sendEmailVerification
 } from 'firebase/auth'
 import { auth, googleProvider } from '../firebase'
+import { userService } from './userService'
 import { debugLog, debugWarn, debugError } from '../utils/debug'
 
 export const authService = {
@@ -51,6 +52,7 @@ export const authService = {
         }
       }
       
+      
       return { user: result.user, error: null, message: null }
     } catch (error) {
       return { user: null, error: error.code, message: null }
@@ -72,6 +74,8 @@ export const authService = {
     try {
       const result = await getRedirectResult(auth)
       if (result?.user) {
+        // User registration will be handled by AuthContext's onAuthStateChanged
+        // No need to call registerUser here
         return { user: result.user, error: null }
       }
       return { user: null, error: null }
@@ -106,6 +110,10 @@ export const authService = {
           debugLog('Initiating Google Popup for Desktop', { provider: 'Google' })
           const result = await signInWithPopup(auth, googleProvider)
           debugLog('Google Popup Sign In Success', { email: result.user.email })
+          
+          // User registration will be handled by AuthContext's onAuthStateChanged
+          // No need to call registerUser here
+          
           return { user: result.user, error: null, message: null }
         } catch (popupError) {
           debugError('Popup Error', { code: popupError.code, message: popupError.message })

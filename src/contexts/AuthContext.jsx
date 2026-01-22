@@ -1,15 +1,24 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { onAuthStateChanged, signOut, getRedirectResult } from 'firebase/auth'
 import { auth } from '../firebase'
+import { userService } from '../services/userService'
 import { debugLog, debugWarn, debugError } from '../utils/debug'
 
 const AuthContext = createContext(null)
+
+function useAuth() {
+  const context = useContext(AuthContext)
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider')
+  }
+  return context
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-
+  const [isNewUser, setIsNewUser] = useState(null) 
   useEffect(() => {
     // Check for redirect result from Google sign-in on mobile
     const checkRedirectResult = async () => {
@@ -54,21 +63,49 @@ export function AuthProvider({ children }) {
           try {
             await signOut(auth)
             setUser(null)
-            setLoading(false)
+            setIsNewUser(null)
+            setLoading(true)
             return
           } catch (err) {
             debugError('Error Signing Out Unverified User', err)
             setUser(null)
+            setIsNewUser(null)
+            setLoading(true)
           }
         } else {
           debugLog('User Allowed', { email: currentUser.email, isGoogle: isGoogleUser, emailVerified: currentUser.emailVerified })
-          setUser(currentUser)
+          
+          // Register user in database and check if they're new BEFORE setting user
+          try {
+            debugLog('Starting user registration', { userId: currentUser.uid })
+            const result = await userService.registerUser(currentUser)
+            debugLog('User registration result', { error: result.error, isNewUser: result.isNewUser, userId: currentUser.uid })
+            
+            if (result.error) {
+              debugWarn('Failed to register user in database', { error: result.error })
+              setIsNewUser(true)
+              setError(`Database Error: ${result.error}. Please complete your profile.`)
+            } else {
+              debugLog('Setting isNewUser to', { value: result.isNewUser })
+              setIsNewUser(result.isNewUser)
+              setError(null)
+            }
+            setUser(currentUser)
+            setLoading(false)
+          } catch (err) {
+            debugError('Error registering user', { message: err.message, stack: err.stack })
+            setIsNewUser(true)
+            setError(`Error: ${err.message}. Please complete your profile.`)
+            setUser(currentUser)
+            setLoading(false)
+          }
         }
       } else {
         debugLog('No User Logged In', null)
         setUser(null)
+        setIsNewUser(false)
+        setLoading(false)
       }
-      setLoading(false)
     }, (err) => {
       debugError('Auth Error', err)
       setError(err.message)
@@ -92,7 +129,9 @@ export function AuthProvider({ children }) {
     loading,
     error,
     logout,
-    isAuthenticated: !!user
+    isAuthenticated: !!user,
+    isNewUser,
+    setIsNewUser
   }
 
   return (
@@ -102,10 +141,5 @@ export function AuthProvider({ children }) {
   )
 }
 
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider')
-  }
-  return context
-}
+export { useAuth }
+

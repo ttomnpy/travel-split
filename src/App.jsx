@@ -1,13 +1,15 @@
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { LoadingSpinner } from './components'
-import { LoginPage, HomePage } from './pages'
+import { LoginPage, HomePage, UserProfileSetupPage } from './pages'
 import { debugLog } from './utils/debug'
 import './styles/global.css'
 
 function AppContent() {
-  const { user, loading, logout } = useAuth()
+  const { user, loading, logout, isNewUser, setIsNewUser } = useAuth()
 
-  if (loading) {
+  // Show loading only until isNewUser status is determined
+  // isNewUser starts as null, becomes true/false after auth check
+  if (isNewUser === null) {
     return <LoadingSpinner />
   }
 
@@ -19,12 +21,23 @@ function AppContent() {
     user: user?.email, 
     emailVerified: user?.emailVerified, 
     isGoogle: isGoogleUser,
-    isAuthorized 
+    isAuthorized,
+    isNewUser
   })
 
   if (!isAuthorized) {
     debugLog('Unauthorized Access Attempt - Showing LoginPage', null)
     return <LoginPage />
+  }
+
+  // Show profile setup page for new users
+  if (isNewUser) {
+    debugLog('Showing UserProfileSetupPage for new user', { userId: user?.uid })
+    return (
+      <UserProfileSetupPage 
+        onProfileComplete={() => setIsNewUser(false)}
+      />
+    )
   }
 
   return <HomePage onLogout={logout} />
