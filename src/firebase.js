@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app'
 import { getAuth, GoogleAuthProvider, setPersistence, browserLocalPersistence } from 'firebase/auth'
 import { getDatabase } from 'firebase/database'
 import { getStorage } from 'firebase/storage'
+import { debugError } from './utils/debug'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -26,7 +27,7 @@ export const googleProvider = new GoogleAuthProvider()
 
 // Set persistence to LOCAL so users stay logged in
 setPersistence(auth, browserLocalPersistence).catch((error) => {
-  console.error('Error setting persistence:', error)
+  debugError('Error setting persistence', error)
 })
 
 // Configure Google provider to always show account selection

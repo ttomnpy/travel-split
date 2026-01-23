@@ -63,14 +63,14 @@ export function AuthProvider({ children }) {
           try {
             await signOut(auth)
             setUser(null)
-            setIsNewUser(null)
-            setLoading(true)
+            setIsNewUser(false)
+            setLoading(false)
             return
           } catch (err) {
             debugError('Error Signing Out Unverified User', err)
             setUser(null)
-            setIsNewUser(null)
-            setLoading(true)
+            setIsNewUser(false)
+            setLoading(false)
           }
         } else {
           debugLog('User Allowed', { email: currentUser.email, isGoogle: isGoogleUser, emailVerified: currentUser.emailVerified })

@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useAuthForm } from '../../hooks/useAuthForm'
 import { useTranslation } from '../../hooks/useTranslation'
 import { getErrorMessage, validateEmail, validatePassword, validatePasswordsMatch } from '../../utils/validation'
 import { InputField, Button, GoogleLoginButton, PasswordRequirements } from '../../components'
 import { authService } from '../../services/authService'
+import { debugLog } from '../../utils/debug'
 import VerificationPage from '../VerificationPage/VerificationPage'
 import { BiMoney } from 'react-icons/bi'
 import './LoginPage.css'
@@ -15,9 +16,14 @@ function LoginPage() {
   const [localError, setLocalError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [showVerification, setShowVerification] = useState(false)
-  const [unverifiedUser, setUnverifiedUser] = useState(null)
-  const [signupEmail, setSignupEmail] = useState('')
+  
+  // Initialize verification state from localStorage
+  const pendingEmailFromStorage = localStorage.getItem('pendingVerificationEmail')
+  const [showVerification, setShowVerification] = useState(!!pendingEmailFromStorage)
+  const [unverifiedUser, setUnverifiedUser] = useState(
+    pendingEmailFromStorage ? { email: pendingEmailFromStorage } : null
+  )
+  const [signupEmail, setSignupEmail] = useState(pendingEmailFromStorage || '')
   const [confirmPassword, setConfirmPassword] = useState('')
   const { email, setEmail, password, setPassword } = useAuthForm()
 
@@ -42,13 +48,19 @@ function LoginPage() {
         if (result.error) {
           setLocalError(result.error)
         } else {
-          // Store user info and show verification page
-          setUnverifiedUser(result.user)
+          // Store to localStorage first
+          localStorage.setItem('pendingVerificationEmail', email)
+          localStorage.setItem('pendingSignupCredentials', JSON.stringify({ email, password }))
+          
+          // Then update state to show verification page
           setSignupEmail(email)
+          setUnverifiedUser(result.user)
           setShowVerification(true)
           setEmail('')
           setPassword('')
           setConfirmPassword('')
+          
+          debugLog('Signup successful, showing verification page', { email })
         }
       } else {
         // Login - normal flow
@@ -72,6 +84,9 @@ function LoginPage() {
     setIsSignUp(false)
     setLocalError('')
     setSuccessMessage('verification_complete')
+    // Clear pending verification and credentials from localStorage
+    localStorage.removeItem('pendingVerificationEmail')
+    localStorage.removeItem('pendingSignupCredentials')
     // Clear success message after 5 seconds
     setTimeout(() => setSuccessMessage(''), 5000)
   }
@@ -82,7 +97,7 @@ function LoginPage() {
     setSignupEmail('')
   }
 
-  if (showVerification && unverifiedUser) {
+  if (showVerification) {
     return (
       <VerificationPage
         email={signupEmail}

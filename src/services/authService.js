@@ -18,12 +18,28 @@ export const authService = {
       debugLog('Sign Up Process Started', { email })
       const result = await createUserWithEmailAndPassword(auth, email, password)
       
-      // Send verification email
-      await sendEmailVerification(result.user)
+      debugLog('User account created', { email, uid: result.user.uid })
+      
+      // Send verification email immediately while user is still authenticated
+      try {
+        await sendEmailVerification(result.user)
+        debugLog('Verification email sent successfully', { email })
+      } catch (emailError) {
+        debugError('Failed to send verification email', { code: emailError.code, message: emailError.message })
+        // Don't fail signup if email sending fails - user can resend later
+      }
+      
+      // Store credentials in localStorage for resending verification
+      localStorage.setItem('pendingSignupCredentials', JSON.stringify({ email, password }))
+      debugLog('Credentials stored for verification resend', { email })
       
       // Sign out the user immediately so they can't access the app without verifying
-      await firebaseSignOut(auth)
-      debugLog('User Created and Signed Out - Verification Email Sent', { email })
+      try {
+        await firebaseSignOut(auth)
+        debugLog('User signed out after verification email', { email })
+      } catch (signoutError) {
+        debugError('Failed to sign out after signup', { code: signoutError.code, message: signoutError.message })
+      }
       
       return { 
         user: result.user, 
@@ -60,12 +76,59 @@ export const authService = {
   },
 
   // Resend verification email
-  resendVerificationEmail: async (user) => {
+  resendVerificationEmail: async (email) => {
     try {
-      await sendEmailVerification(user)
-      return { error: null, message: 'email_resent' }
+      debugLog('Resending verification email', { email })
+      
+      // Retrieve stored credentials from localStorage
+      const storedCredentials = localStorage.getItem('pendingSignupCredentials')
+      if (!storedCredentials) {
+        debugError('Resend Email Error', 'No stored credentials found')
+        return { error: 'no_credentials', message: null }
+      }
+      
+      let credentials
+      try {
+        credentials = JSON.parse(storedCredentials)
+      } catch (e) {
+        debugError('Resend Email Error', 'Invalid stored credentials format')
+        return { error: 'invalid_credentials', message: null }
+      }
+      
+      // Verify email matches
+      if (credentials.email !== email) {
+        debugError('Resend Email Error', `Email mismatch: ${credentials.email} !== ${email}`)
+        return { error: 'email_mismatch', message: null }
+      }
+      
+      try {
+        // Sign in temporarily with stored credentials
+        const result = await signInWithEmailAndPassword(auth, credentials.email, credentials.password)
+        debugLog('Temporary sign in successful for verification email', { email: credentials.email })
+        
+        // Send verification email
+        await sendEmailVerification(result.user)
+        debugLog('Verification email sent', { email })
+        
+        // Sign out immediately
+        await firebaseSignOut(auth)
+        debugLog('Signed out after sending verification email', null)
+        
+        return { error: null, message: 'email_resent' }
+      } catch (signInError) {
+        // Handle rate limiting gracefully
+        if (signInError.code === 'auth/too-many-requests') {
+          debugWarn('Resend Email Rate Limited', { message: signInError.message })
+          return { 
+            error: 'auth/too-many-requests', 
+            message: 'Too many attempts. Please wait a few minutes before trying again.'
+          }
+        }
+        throw signInError
+      }
     } catch (error) {
-      return { error: error.code, message: null }
+      debugError('Resend Email Error', error)
+      return { error: error.code || 'unknown_error', message: null }
     }
   },
 

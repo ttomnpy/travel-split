@@ -24,7 +24,24 @@ export const i18n = {
   },
 
   // Get translation
-  t: (key, defaultValue = key, variables = {}) => {
+  t: (key, secondParam, thirdParam) => {
+    // Handle overloaded parameters:
+    // t(key) or t(key, variables) or t(key, defaultValue, variables)
+    let variables = {}
+    let defaultValue = key
+
+    if (typeof secondParam === 'object' && !Array.isArray(secondParam) && secondParam !== null) {
+      // Second param is variables: t(key, variables)
+      variables = secondParam
+    } else if (typeof secondParam === 'string' && typeof thirdParam === 'object') {
+      // Second param is default, third is variables: t(key, defaultValue, variables)
+      defaultValue = secondParam
+      variables = thirdParam || {}
+    } else if (typeof secondParam === 'string') {
+      // Second param is just default value
+      defaultValue = secondParam
+    }
+
     const keys = key.split('.')
     let value = translations[currentLanguage]
 
@@ -38,8 +55,10 @@ export const i18n = {
 
     // Replace variables like {{email}} with actual values
     let result = value
-    for (const [varKey, varValue] of Object.entries(variables)) {
-      result = result.replace(`{{${varKey}}}`, varValue)
+    if (variables && typeof variables === 'object') {
+      for (const [varKey, varValue] of Object.entries(variables)) {
+        result = result.replaceAll(`{{${varKey}}}`, String(varValue))
+      }
     }
 
     return result

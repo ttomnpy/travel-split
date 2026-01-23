@@ -1,3 +1,4 @@
 export { default as LoginPage } from './LoginPage/LoginPage'
 export { default as HomePage } from './HomePage/HomePage'
 export { UserProfileSetupPage } from './UserProfileSetupPage/UserProfileSetupPage'
+export { default as GroupDetailPage } from './GroupDetailPage/GroupDetailPage'

@@ -1,12 +1,22 @@
 /* Verification Page - Dark Theme */
 
 .verification-container {
-  min-height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   background: var(--bg-dark);
-  padding: 20px;
+  padding: 60px 16px 16px 16px;
+  overflow: auto;
+  z-index: 0;
+  height: 100dvh;
+  width: 100dvw;
+  -webkit-overflow-scrolling: touch;
 }
 
 .verification-card {
@@ -14,10 +24,14 @@
   max-width: 420px;
   background: var(--bg-card);
   border-radius: 20px;
-  padding: 40px 24px;
+  padding: 32px 20px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
   border: 1px solid var(--border-color);
   text-align: center;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Icon */
@@ -118,6 +132,7 @@
   flex-direction: column;
   gap: 12px;
   margin-bottom: 24px;
+  width: 100%;
 }
 
 /* Footer */
@@ -128,9 +143,23 @@
 }
 
 /* Responsive */
+@media (max-width: 480px) {
+  .verification-card {
+    padding: 28px 16px;
+  }
+
+  .verification-card h1 {
+    font-size: 20px;
+  }
+
+  .verification-icon {
+    font-size: 56px;
+  }
+}
+
 @media (min-width: 768px) {
   .verification-card {
-    padding: 48px 32px;
+    padding: 40px 28px;
   }
 
   .verification-card h1 {

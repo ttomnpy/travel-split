@@ -1,159 +1,412 @@
+import { useState, useEffect, useRef } from 'react'
+import { ref, onValue } from 'firebase/database'
+import { rtdb } from '../../firebase'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTranslation } from '../../hooks/useTranslation'
-import { Button } from '../../components'
-import { BiMoney, BiPlus, BiHistory, BiTrendingUp, BiLogOut } from 'react-icons/bi'
+import { debugLog, debugError } from '../../utils/debug'
+import { Button, LoadingSpinner, HeaderControls, CreateGroupModal } from '../../components'
+import { BiMoney, BiPlus, BiLink, BiTrendingUp, BiX, BiChevronRight, BiWallet, BiGroup } from 'react-icons/bi'
 import './HomePage.css'
 
-function HomePage({ onLogout }) {
+function HomePage({ onLogout, onNavigate = () => {} }) {
   const { user } = useAuth()
   const { t, setLanguage, currentLanguage } = useTranslation()
+  
+  const [userGroups, setUserGroups] = useState([])
+  const [recentExpenses, setRecentExpenses] = useState([])
+  const [overallSummary, setOverallSummary] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false)
+  const allExpensesRef = useRef({})
 
-  // Dummy data for display
-  const totalExpenses = 2450.50
-  const yourShare = 1225.00
-  const groupsCount = 3
-  const recentTransactions = [
-    {
-      id: 1,
-      name: t('common.appName'),
-      amount: 250.00,
-      date: '2 days ago',
-      you: 'paid'
-    },
-    {
-      id: 2,
-      name: t('common.appName'),
-      amount: 125.50,
-      date: '5 days ago',
-      you: 'owed'
-    },
-    {
-      id: 3,
-      name: t('common.appName'),
-      amount: 399.99,
-      date: '1 week ago',
-      you: 'paid'
+  useEffect(() => {
+    if (!user?.uid) return
+
+    setIsLoading(true)
+    setError('')
+
+    // Track all unsubscribes for cleanup
+    let unsubscribeExpenses = []
+    allExpensesRef.current = {}
+
+    const unsubscribeUser = onValue(
+      ref(rtdb, `users/${user.uid}`),
+      (userSnapshot) => {
+        try {
+          if (!userSnapshot.exists()) {
+            setUserGroups([])
+            setOverallSummary(null)
+            setRecentExpenses([])
+            setIsLoading(false)
+            return
+          }
+
+          const userData = userSnapshot.val()
+          const groups = userData.groups || {}
+          
+          // Transform groups data
+          const groupsArray = Object.entries(groups).map(([groupId, groupData]) => ({
+            id: groupId,
+            ...groupData
+          }))
+
+          setUserGroups(groupsArray)
+          setOverallSummary(userData.overallSummary || {
+            totalGroupCount: 0,
+            totalBalance: 0,
+            totalPendingAmount: 0
+          })
+
+          // Clean up old listeners
+          unsubscribeExpenses.forEach(unsub => unsub())
+          unsubscribeExpenses = []
+          allExpensesRef.current = {}
+
+          // Set up listeners for expenses in each group
+          for (const groupId of Object.keys(groups)) {
+            const groupRef = ref(rtdb, `groups/${groupId}/expenses`)
+            const unsubscribe = onValue(
+              groupRef,
+              (groupSnapshot) => {
+                debugLog(`Expenses updated for group ${groupId}`, groupSnapshot.val())
+                if (groupSnapshot.exists()) {
+                  const expenses = groupSnapshot.val()
+                  allExpensesRef.current[groupId] = Object.entries(expenses).map(([expenseId, expenseData]) => ({
+                    id: expenseId,
+                    groupId,
+                    groupName: groups[groupId]?.name || 'Unknown Group',
+                    ...expenseData
+                  }))
+                } else {
+                  allExpensesRef.current[groupId] = []
+                }
+
+                // Sort by date and take last 5
+                const sorted = Object.values(allExpensesRef.current)
+                  .flat()
+                  .sort((a, b) => (b.created || 0) - (a.created || 0))
+                  .slice(0, 5)
+
+                debugLog('Recent expenses updated', sorted)
+                setRecentExpenses(sorted)
+                setIsLoading(false)
+              },
+              (error) => {
+                debugError(`Error listening to expenses for group ${groupId}`, error)
+                setIsLoading(false)
+              }
+            )
+            unsubscribeExpenses.push(unsubscribe)
+          }
+
+          if (Object.keys(groups).length === 0) {
+            setRecentExpenses([])
+            setIsLoading(false)
+          }
+        } catch (err) {
+          debugError('Error loading home data', err)
+          setError(t('home.errorLoading'))
+          setIsLoading(false)
+        }
+      },
+      (error) => {
+        debugError('Error listening to user data', error)
+        setError(t('home.errorLoading'))
+        setIsLoading(false)
+      }
+    )
+
+    // Cleanup function
+    return () => {
+      unsubscribeUser()
+      unsubscribeExpenses.forEach(unsub => unsub())
     }
-  ]
+  }, [user?.uid])
+
+  const getCategoryEmoji = (category) => {
+    const emojiMap = {
+      'Lodging': '🏨',
+      'Food': '🍽️',
+      'Transport': '🚗',
+      'Entertainment': '🎭',
+      'Shopping': '🛍️',
+      'Other': '📌'
+    }
+    return emojiMap[category] || '📌'
+  }
+
+  const formatCurrency = (amount, currency = 'USD') => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency
+    }).format(amount || 0)
+  }
+
+  const formatDate = (timestamp) => {
+    if (!timestamp) return 'N/A'
+    const date = new Date(timestamp)
+    const today = new Date()
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+
+    if (date.toDateString() === today.toDateString()) {
+      return currentLanguage === 'zh-HK' ? '今天' : 'Today'
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return currentLanguage === 'zh-HK' ? '昨天' : 'Yesterday'
+    } else {
+      return date.toLocaleDateString(currentLanguage === 'zh-HK' ? 'zh-HK' : 'en-US', { 
+        month: 'short', 
+        day: 'numeric',
+        year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
+      })
+    }
+  }
+
+  const displayName = user?.displayName || user?.email?.split('@')[0] || 'User'
+
+  if (isLoading) {
+    return (
+      <div className="home-container">
+        <div className="loading-wrapper">
+          <LoadingSpinner />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="home-container">
       {/* Header */}
-      <div className="home-header">
-        <div className="header-top">
-          <div className="logo-section">
-            <div className="logo-icon">
-              <BiMoney />
+      <header className="home-header">
+        <div className="header-content">
+          <div className="header-left">
+            <div className="app-logo">
+              <BiWallet />
             </div>
-            <div>
-              <h1>{t('common.appName')}</h1>
-              <p className="user-email">{user?.email}</p>
-            </div>
+            <h1 className="app-title">TripSplit</h1>
           </div>
-          <div className="header-actions">
-            <button
-              className={`lang-btn ${currentLanguage === 'zh-HK' ? 'active' : ''}`}
-              onClick={() => setLanguage('zh-HK')}
-              title="繁体中文"
-            >
-              繁
-            </button>
-            <button
-              className={`lang-btn ${currentLanguage === 'en-US' ? 'active' : ''}`}
-              onClick={() => setLanguage('en-US')}
-              title="English"
-            >
-              EN
-            </button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={onLogout}
-              className="logout-btn"
-            >
-              <BiLogOut /> {t('common.logout')}
-            </Button>
-          </div>
+          <HeaderControls
+            currentLanguage={currentLanguage}
+            onLanguageChange={setLanguage}
+            onLogout={onLogout}
+            user={user}
+            displayName={displayName}
+          />
         </div>
-      </div>
+      </header>
 
       {/* Main Content */}
-      <div className="home-content">
-        {/* Quick Stats */}
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-icon total">
-              <BiTrendingUp />
-            </div>
-            <div className="stat-info">
-              <p className="stat-label">{currentLanguage === 'zh-HK' ? '總支出' : 'Total Expenses'}</p>
-              <p className="stat-value">${totalExpenses.toFixed(2)}</p>
-            </div>
+      <main className="home-main">
+        {error && (
+          <div className="error-banner">
+            <BiX className="error-icon" />
+            <span>{error}</span>
           </div>
+        )}
 
-          <div className="stat-card">
-            <div className="stat-icon yourshare">
-              <BiMoney />
-            </div>
-            <div className="stat-info">
-              <p className="stat-label">{currentLanguage === 'zh-HK' ? '您的份額' : 'Your Share'}</p>
-              <p className="stat-value">${yourShare.toFixed(2)}</p>
-            </div>
+        {/* Welcome Section */}
+        <section className="welcome-section">
+          <div className="welcome-card">
+            <p className="welcome-greeting">{t('home.welcome', { name: displayName })}</p>
+            <h2 className="welcome-title">{t('home.balanceTitle')}</h2>
           </div>
+        </section>
 
-          <div className="stat-card">
-            <div className="stat-icon groups">
-              <BiPlus />
-            </div>
-            <div className="stat-info">
-              <p className="stat-label">{currentLanguage === 'zh-HK' ? '群組' : 'Groups'}</p>
-              <p className="stat-value">{groupsCount}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Transactions */}
-        <div className="recent-section">
-          <div className="section-header">
-            <BiHistory />
-            <h2>{currentLanguage === 'zh-HK' ? '最近交易' : 'Recent Transactions'}</h2>
-          </div>
-
-          <div className="transactions-list">
-            {recentTransactions.map((transaction) => (
-              <div key={transaction.id} className="transaction-item">
-                <div className="transaction-info">
-                  <p className="transaction-name">{transaction.name}</p>
-                  <p className="transaction-date">{transaction.date}</p>
-                </div>
-                <div className={`transaction-amount ${transaction.you}`}>
-                  <span className="amount-text">
-                    {transaction.you === 'paid' ? '+' : '-'}${transaction.amount.toFixed(2)}
-                  </span>
+        {/* Balance Overview Card - Three Card Layout */}
+        <section className="balance-overview">
+          <div className="balance-cards-grid">
+            {/* Main Balance Status Card */}
+            <div className="balance-primary-card">
+              <div className="balance-card-header">
+                <span className="balance-label">{t('home.totalBalance')}</span>
+              </div>
+              <div className="balance-card-body">
+                <p className={`balance-amount-main ${(overallSummary?.totalBalance || 0) >= 0 ? 'positive' : 'negative'}`}>
+                  {formatCurrency(overallSummary?.totalBalance || 0)}
+                </p>
+                <div className="balance-status-indicator">
+                  {(overallSummary?.totalBalance || 0) > 0 && (
+                    <div className="status-badge positive">
+                      <BiTrendingUp />
+                      <span>{t('home.toReceive')}</span>
+                    </div>
+                  )}
+                  {(overallSummary?.totalBalance || 0) < 0 && (
+                    <div className="status-badge negative">
+                      <BiTrendingUp />
+                      <span>{t('home.toPay')}</span>
+                    </div>
+                  )}
+                  {(overallSummary?.totalBalance || 0) === 0 && (
+                    <div className="status-badge settled">
+                      <span>✓ {t('home.settled')}</span>
+                    </div>
+                  )}
                 </div>
               </div>
-            ))}
+            </div>
+
+            {/* You Owe Card */}
+            <div className="balance-detail-card owes">
+              <div className="balance-card-header">
+                <span className="balance-label">{t('home.iOwe')}</span>
+              </div>
+              <div className="balance-card-body">
+                <p className="balance-amount-detail owing">
+                  {formatCurrency(Math.min(0, overallSummary?.totalBalance || 0) * -1)}
+                </p>
+                <div className="card-meta">{t('home.needToPay')}</div>
+              </div>
+            </div>
+
+            {/* You're Owed Card */}
+            <div className="balance-detail-card owed">
+              <div className="balance-card-header">
+                <span className="balance-label">{t('home.iOwed')}</span>
+              </div>
+              <div className="balance-card-body">
+                <p className="balance-amount-detail owed">
+                  {formatCurrency(Math.max(0, overallSummary?.totalBalance || 0))}
+                </p>
+                <div className="card-meta">{t('home.willReceive')}</div>
+              </div>
+            </div>
           </div>
-        </div>
+        </section>
 
         {/* Action Buttons */}
-        <div className="action-buttons">
-          <Button
-            variant="primary"
-            size="lg"
-            className="action-btn new-expense"
+        <section className="action-buttons">
+          <button
+            className="action-btn primary"
+            onClick={() => setIsCreateGroupModalOpen(true)}
           >
-            <BiPlus /> {currentLanguage === 'zh-HK' ? '新增支出' : 'New Expense'}
-          </Button>
-          <Button
-            variant="secondary"
-            size="lg"
-            className="action-btn new-group"
+            <BiPlus className="btn-icon" />
+            <span>{t('home.createTrip')}</span>
+          </button>
+          <button
+            className="action-btn secondary"
+            onClick={() => onNavigate('joinGroup')}
           >
-            <BiMoney /> {currentLanguage === 'zh-HK' ? '新建群組' : 'New Group'}
-          </Button>
-        </div>
-      </div>
+            <BiLink className="btn-icon" />
+            <span>{t('home.joinTrip')}</span>
+          </button>
+        </section>
+
+        {/* Groups Section */}
+        {userGroups.length > 0 ? (
+          <section className="groups-section">
+            <div className="section-header">
+              <h2 className="section-title">
+                <BiGroup className="header-icon" />
+                {t('home.activeTrips')}
+              </h2>
+              {userGroups.length > 3 && (
+                <button className="view-all-btn" onClick={() => onNavigate('allGroups')}>
+                  {t('home.viewAll')} <BiChevronRight />
+                </button>
+              )}
+            </div>
+
+            <div className="groups-list">
+              {userGroups.slice(0, 3).map((group) => (
+                <div
+                  key={group.id}
+                  className="group-card"
+                  onClick={() => onNavigate('groupDetail', { groupId: group.id })}
+                >
+                  <div className="group-header">
+                    <div className="group-emoji">🌍</div>
+                    <div className="group-info">
+                      <h3 className="group-name">{group.name}</h3>
+                      <p className="group-meta">{group.memberCount || 0} {currentLanguage === 'zh-HK' ? '成員' : 'members'}</p>
+                    </div>
+                  </div>
+                  <div className="group-footer">
+                    <div className="group-status">
+                      <span className="status-label">{t('home.totalPending')}</span>
+                      <span className={`status-amount ${group.pendingAmount >= 0 ? 'positive' : 'negative'}`}>
+                        {formatCurrency(group.pendingAmount || 0)}
+                      </span>
+                    </div>
+                    <BiChevronRight className="group-arrow" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : (
+          <section className="empty-state">
+            <div className="empty-visual">
+              <div className="empty-icon">🎒</div>
+              <h3>{t('home.noTrips')}</h3>
+              <p>{t('home.noTripsDescription')}</p>
+            </div>
+            <button
+              className="empty-cta"
+              onClick={() => onNavigate('createGroup')}
+            >
+              <BiPlus /> {t('home.createTrip')}
+            </button>
+          </section>
+        )}
+
+        {/* Recent Activity */}
+        {recentExpenses.length > 0 && (
+          <section className="activity-section">
+            <div className="section-header">
+              <h2 className="section-title">{t('home.recentPayments')}</h2>
+              {recentExpenses.length > 3 && (
+                <button className="view-all-btn" onClick={() => onNavigate('allActivity')}>
+                  {t('home.viewAll')} <BiChevronRight />
+                </button>
+              )}
+            </div>
+
+            <div className="activity-timeline">
+              {recentExpenses.slice(0, 3).map((expense) => (
+                <div
+                  key={expense.id}
+                  className="activity-entry"
+                  onClick={() => onNavigate('groupDetail', { groupId: expense.groupId })}
+                >
+                  <div className="activity-visual">
+                    <div className="activity-icon">{getCategoryEmoji(expense.cat)}</div>
+                  </div>
+                  <div className="activity-detail">
+                    <p className="activity-title">{expense.desc}</p>
+                    <p className="activity-context">
+                      {expense.groupName} • {formatDate(expense.date)}
+                    </p>
+                  </div>
+                  <div className="activity-amount">
+                    {formatCurrency(expense.amt)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Footer Spacing */}
+        <div className="content-footer"></div>
+      </main>
+
+      {/* Create Group Modal */}
+      <CreateGroupModal
+        isOpen={isCreateGroupModalOpen}
+        onClose={() => setIsCreateGroupModalOpen(false)}
+        onGroupCreated={(newGroup) => {
+          // newGroup contains groupId and inviteCode
+          onNavigate('groupDetail', { groupId: newGroup.groupId })
+        }}
+        userId={user?.uid}
+        userData={{
+          displayName: user?.displayName || 'Owner',
+          email: user?.email || '',
+          photo: user?.photoURL || null
+        }}
+      />
     </div>
   )
 }

@@ -8,6 +8,11 @@
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
 }
 
 /* Variants */

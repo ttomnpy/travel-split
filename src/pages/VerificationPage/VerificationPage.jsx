@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react'
 import { Button } from '../../components'
 import { useTranslation } from '../../hooks/useTranslation'
 import { authService } from '../../services/authService'
-import { BiMailSend } from 'react-icons/bi'
+import { debugLog, debugError } from '../../utils/debug'
+import { auth } from '../../firebase'
+import { BiSend } from 'react-icons/bi'
 import './VerificationPage.css'
 
 function VerificationPage({ email, user, onVerificationComplete, onBackToLogin }) {
@@ -26,28 +28,61 @@ function VerificationPage({ email, user, onVerificationComplete, onBackToLogin }
     }, 3000)
 
     return () => clearInterval(autoCheckInterval)
-  }, [user])
+  }, [email])
 
   const checkVerification = async () => {
-    if (!user) return
-    
     try {
-      // Reload user to get updated emailVerified status
-      if (user.reload) {
-        await user.reload()
+      debugLog('Checking email verification status', { email })
+      
+      // Sign in temporarily to check verification status
+      // This is necessary because the user was signed out after signup
+      const storedCredentials = localStorage.getItem('pendingSignupCredentials')
+      if (!storedCredentials) {
+        setResendMessage(t('verification.checkFailed'))
+        return
       }
-
-      if (user.emailVerified) {
-        setResendMessage('✓ 郵件已驗證！')
+      
+      let credentials
+      try {
+        credentials = JSON.parse(storedCredentials)
+      } catch (e) {
+        setResendMessage(t('verification.checkFailed'))
+        return
+      }
+      
+      if (credentials.email !== email) {
+        setResendMessage(t('verification.checkFailed'))
+        return
+      }
+      
+      // Temporarily sign in to check email verification
+      const { signInWithEmailAndPassword } = await import('firebase/auth')
+      const result = await signInWithEmailAndPassword(auth, credentials.email, credentials.password)
+      
+      debugLog('User signed in for verification check', { email: credentials.email })
+      
+      // Reload to get latest email verification status
+      await result.user.reload()
+      debugLog('User reloaded, emailVerified status:', { emailVerified: result.user.emailVerified })
+      
+      if (result.user.emailVerified) {
+        debugLog('Email is verified!', { email })
+        setResendMessage(t('verification.verified'))
+        
+        // Sign out and show success message
+        const { signOut } = await import('firebase/auth')
+        await signOut(auth)
+        
         setTimeout(() => {
           onVerificationComplete()
         }, 1500)
       } else {
-        setResendMessage('✗ 郵件未驗證。請檢查收件箱並點擊驗證鏈接。')
+        debugLog('Email not yet verified', { email })
+        setResendMessage(t('verification.notVerified'))
       }
     } catch (error) {
-      console.error('Error checking verification:', error)
-      setResendMessage('✗ 檢查驗證狀態失敗。請稍後再試。')
+      debugError('Error checking verification', error)
+      setResendMessage(t('verification.checkFailed'))
     }
   }
 
@@ -56,11 +91,16 @@ function VerificationPage({ email, user, onVerificationComplete, onBackToLogin }
     setResendMessage('')
 
     try {
-      const result = await authService.resendVerificationEmail(user)
+      const result = await authService.resendVerificationEmail(email)
       if (result.error) {
-        setResendMessage('error')
+        // Check if it's a rate limit error
+        if (result.error === 'auth/too-many-requests') {
+          setResendMessage(t('verification.resendRateLimited'))
+        } else {
+          setResendMessage('error')
+        }
       } else {
-        setResendMessage('success')
+        setResendMessage(t('verification.resendSuccess'))
         setCountdown(60)
       }
     } finally {
@@ -73,7 +113,7 @@ function VerificationPage({ email, user, onVerificationComplete, onBackToLogin }
       <div className="verification-card">
         {/* Icon */}
         <div className="verification-icon">
-          <BiMailSend />
+          <BiSend />
         </div>
 
         {/* Title */}
@@ -109,6 +149,7 @@ function VerificationPage({ email, user, onVerificationComplete, onBackToLogin }
           >
             {resendMessage === 'success' && t('verification.resendSuccess')}
             {resendMessage === 'error' && t('verification.resendFailed')}
+            {resendMessage !== 'success' && resendMessage !== 'error' && resendMessage}
           </div>
         )}
 
@@ -133,7 +174,7 @@ function VerificationPage({ email, user, onVerificationComplete, onBackToLogin }
             disabled={isResending || countdown > 0}
           >
             {countdown > 0
-              ? t('verification.resendCountdown', null, { countdown })
+              ? `${t('verification.resendButton')} (${countdown}${t('verification.resendCountdown').includes('秒') ? '秒' : 's'})`
               : t('verification.resendButton')}
           </Button>
 

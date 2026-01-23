@@ -37,9 +37,13 @@ export const validatePasswordsMatch = (password, confirmPassword) => {
 }
 
 export const getErrorMessage = (error) => {
+  if (!error) return ''
+  
   // Try to get from translations first
   const translatedMessage = i18n.t(`errors.${error}`, null)
-  if (translatedMessage && translatedMessage !== `errors.${error}`) {
+  
+  // Check if translation exists (it won't be the same as the key if found)
+  if (translatedMessage && translatedMessage !== `errors.${error}` && translatedMessage !== null) {
     return translatedMessage
   }
 

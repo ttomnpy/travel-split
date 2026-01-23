@@ -12,10 +12,11 @@
   justify-content: center;
   background: var(--bg-dark);
   padding: 60px 16px 16px 16px;
-  overflow: hidden;
+  overflow: auto;
   z-index: 0;
   height: 100dvh;
   width: 100dvw;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Language Switcher */
