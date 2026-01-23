@@ -3,16 +3,37 @@ import { rtdb } from '../firebase'
 import { debugLog, debugError } from '../utils/debug'
 
 /**
- * Generate unique 6-character invite code
+ * Generate unique 8-character invite code with collision detection
  * Excludes ambiguous characters: O, I, l, 1, 0
  */
-export const generateInviteCode = () => {
+export const generateInviteCode = async () => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  let code = ''
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length))
+  const maxRetries = 5 // Prevent infinite loop
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    let code = ''
+    
+    // Generate 8-character code (more unique than 6)
+    for (let i = 0; i < 8; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    
+    // Check if code already exists in hash table
+    const codeRef = ref(rtdb, `inviteCodes/${code}`)
+    const snapshot = await get(codeRef)
+    
+    if (!snapshot.exists()) {
+      // Code is unique
+      return code
+    }
+    
+    debugLog('Invite code collision detected, retrying...', { code, attempt })
   }
-  return code
+  
+  // Fallback: use timestamp + random as last resort
+  const timestamp = Date.now().toString(36).toUpperCase()
+  const random = Math.random().toString(36).substring(2, 4).toUpperCase()
+  return `${timestamp}${random}`
 }
 
 /**
@@ -36,7 +57,7 @@ export const createGroup = async (userId, groupData) => {
     const groupId = push(ref(rtdb, 'groups')).key
     if (!groupId) throw new Error('Failed to generate group ID')
 
-    const inviteCode = generateInviteCode()
+    const inviteCode = await generateInviteCode()
     const now = Date.now()
 
     // Group structure following SPEC.md
@@ -78,7 +99,7 @@ export const createGroup = async (userId, groupData) => {
       }
     }
 
-    // Batch update: write group + add to user's groups
+    // Batch update: write group + add to user's groups + add invite code index
     const updates = {}
     updates[`groups/${groupId}`] = newGroup
     updates[`users/${userId}/groups/${groupId}`] = {
@@ -87,6 +108,8 @@ export const createGroup = async (userId, groupData) => {
       lastActivity: now,
       unreadCount: 0
     }
+    // Add to invite code reverse index for O(1) lookup
+    updates[`inviteCodes/${inviteCode}`] = groupId
 
     await update(ref(rtdb), updates)
 
@@ -368,6 +391,152 @@ export const updateGroupInfo = async (groupId, userId, updates) => {
     return { success: true }
   } catch (error) {
     debugError('Error updating group', error)
+    throw error
+  }
+}
+
+export const joinGroupByInviteCode = async (inviteCode, userId, userData) => {
+  try {
+    if (!inviteCode || !userId) {
+      throw new Error('Invite code and user ID are required')
+    }
+
+    // Validate code format
+    const normalizedCode = inviteCode.toUpperCase()
+    if (!/^[A-Z0-9]{6}$/.test(normalizedCode)) {
+      throw new Error('Invalid invite code format')
+    }
+
+    debugLog('Attempting to join group with code', { inviteCode: normalizedCode, userId })
+
+    // EFFICIENT: Direct lookup using reverse index - O(1) instead of O(n)
+    const inviteCodeRef = ref(rtdb, `inviteCodes/${normalizedCode}`)
+    const inviteSnapshot = await get(inviteCodeRef)
+
+    if (!inviteSnapshot.exists()) {
+      throw new Error('Invalid invite code. This code does not exist.')
+    }
+
+    const groupId = inviteSnapshot.val()
+    debugLog('Found groupId from invite code', { groupId })
+
+    // Now fetch the group to verify it exists and check membership
+    const groupRef = ref(rtdb, `groups/${groupId}`)
+    const groupSnapshot = await get(groupRef)
+
+    if (!groupSnapshot.exists()) {
+      throw new Error('Group no longer exists (code is invalid)')
+    }
+
+    const group = groupSnapshot.val()
+
+    // Check if user is already a member
+    if (group.members?.[userId]) {
+      throw new Error('You are already a member of this group')
+    }
+
+    // Prepare new member data
+    const now = Date.now()
+    const newMember = {
+      type: 'real',
+      name: userData?.displayName || 'Member',
+      email: userData?.email || '',
+      photo: userData?.photoURL || null,
+      role: 'member',
+      joinedAt: now
+    }
+
+    // Batch updates
+    const updates = {}
+    updates[`groups/${groupId}/members/${userId}`] = newMember
+    updates[`groups/${groupId}/summary/memberCount`] = (Object.keys(group.members || {}).length) + 1
+    updates[`groups/${groupId}/summary/balances/${userId}`] = 0
+    updates[`users/${userId}/groups/${groupId}`] = {
+      name: group.name,
+      role: 'member',
+      lastActivity: now,
+      unreadCount: 0
+    }
+
+    const historyId = push(ref(rtdb, 'dummy')).key
+    updates[`groups/${groupId}/memberHistory/${historyId}`] = {
+      action: 'joined',
+      memberId: userId,
+      memberName: userData?.displayName || 'Member',
+      timestamp: now
+    }
+
+    await update(ref(rtdb), updates)
+
+    debugLog('Successfully joined group', { groupId, userId, groupName: group.name })
+
+    return {
+      success: true,
+      groupId,
+      groupName: group.name
+    }
+  } catch (error) {
+    debugError('Error joining group with invite code', error)
+    throw error
+  }
+}
+
+export const joinGroupById = async (groupId, userId, userData) => {
+  try {
+    if (!groupId || !userId) {
+      throw new Error('Group ID and user ID are required')
+    }
+
+    debugLog('Attempting to join group by ID', { groupId, userId })
+
+    const groupRef = ref(rtdb, `groups/${groupId}`)
+    const groupSnapshot = await get(groupRef)
+
+    if (!groupSnapshot.exists()) {
+      throw new Error('Group not found')
+    }
+
+    const group = groupSnapshot.val()
+
+    // Check if user is already a member
+    if (group.members?.[userId]) {
+      throw new Error('You are already a member of this group')
+    }
+
+    // Prepare new member data
+    const now = Date.now()
+    const newMember = {
+      type: 'real',
+      name: userData?.displayName || 'Member',
+      email: userData?.email || '',
+      photo: userData?.photoURL || null,
+      role: 'member',
+      joinedAt: now
+    }
+
+    // Batch updates
+    const updates = {}
+    updates[`groups/${groupId}/members/${userId}`] = newMember
+    updates[`groups/${groupId}/summary/memberCount`] = (Object.keys(group.members || {}).length) + 1
+    updates[`groups/${groupId}/summary/balances/${userId}`] = 0
+    updates[`users/${userId}/groups/${groupId}`] = {
+      name: group.name,
+      role: 'member',
+      lastActivity: now,
+      unreadCount: 0
+    }
+
+    await update(ref(rtdb), updates)
+
+    debugLog('Successfully joined group', { groupId, userId })
+
+    return {
+      success: true,
+      groupId,
+      groupName: group.name
+    }
+  } catch (error) {
+    debugError('Error joining group by ID', error)
     throw error
   }
 }

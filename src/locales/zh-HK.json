@@ -10,7 +10,8 @@
     "save": "保存",
     "delete": "刪除",
     "edit": "編輯",
-    "back": "返回"
+    "back": "返回",
+    "close": "關閉"
   },
   "auth": {
     "email": "電子郵件",
@@ -108,6 +109,7 @@
     "pendingInvite": "待邀請",
     "youOwner": "你 (擁有人)",
     "addExpense": "新增開支",
+    "invitePeople": "邀請成員",
     "settings": "設定",
     "backButton": "返回",
     "groupNotFound": "旅程未找到",
@@ -178,5 +180,13 @@
     "chinese": "繁體中文",
     "english": "English",
     "select": "選擇語言"
+  },
+  "invite": {
+    "title": "邀請成員",
+    "description": "與他人分享此代碼以邀請他們加入此旅程",
+    "generating": "生成邀請代碼中...",
+    "copy": "複製",
+    "copied": "已複製！",
+    "info": "任何人有此代碼即可加入你的旅程"
   }
 }

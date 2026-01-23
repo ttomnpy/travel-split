@@ -7,6 +7,7 @@ export { default as GoogleLoginButton } from './GoogleLoginButton/GoogleLoginBut
 export { default as PasswordRequirements } from './PasswordRequirements/PasswordRequirements'
 export { default as HeaderControls } from './HeaderControls/HeaderControls'
 export { default as AddMemberModal } from './AddMemberModal/AddMemberModal'
+export { default as InviteModal } from './InviteModal/InviteModal'
 export { default as MemberCard } from './MemberCard/MemberCard'
 export { default as MembersList } from './MembersList/MembersList'
 export { default as CreateGroupModal } from './CreateGroupModal/CreateGroupModal'

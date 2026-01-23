@@ -17,6 +17,13 @@
   animation: fadeIn 200ms ease;
 }
 
+@media (min-width: 768px) {
+  .modal-overlay {
+    align-items: center;
+    padding: 1rem;
+  }
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -37,6 +44,14 @@
   animation: slideUp 300ms ease;
 }
 
+@media (min-width: 768px) {
+  .modal-content {
+    border-radius: 1rem;
+    max-height: 80dvh;
+    animation: slideDown 300ms ease;
+  }
+}
+
 @keyframes slideUp {
   from {
     transform: translateY(100%);
@@ -44,6 +59,17 @@
   }
   to {
     transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
     opacity: 1;
   }
 }

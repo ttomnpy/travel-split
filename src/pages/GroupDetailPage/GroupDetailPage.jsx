@@ -5,8 +5,8 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useTranslation } from '../../hooks/useTranslation'
 import { debugLog, debugError } from '../../utils/debug'
 import { getGroup } from '../../services/groupService'
-import { AddMemberModal, MembersList, LoadingSpinner, HeaderControls } from '../../components'
-import { BiUndo, BiPlus, BiMoney, BiX, BiLock } from 'react-icons/bi';
+import { AddMemberModal, InviteModal, MembersList, LoadingSpinner, HeaderControls } from '../../components'
+import { BiUndo, BiPlus, BiMoney, BiX, BiLock, BiShare } from 'react-icons/bi';
 import './GroupDetailPage.css'
 
 function GroupDetailPage({ groupId, onNavigate, onLogout }) {
@@ -19,6 +19,7 @@ function GroupDetailPage({ groupId, onNavigate, onLogout }) {
   const [error, setError] = useState('')
   const [errorType, setErrorType] = useState('')
   const [showAddMemberModal, setShowAddMemberModal] = useState(false)
+  const [showInviteModal, setShowInviteModal] = useState(false)
 
   // Fetch group details
   useEffect(() => {
@@ -281,6 +282,15 @@ function GroupDetailPage({ groupId, onNavigate, onLogout }) {
             <BiPlus />
             {t('groupDetail.addExpense')}
           </button>
+          {isOwner && (
+            <button
+              className="action-btn invite"
+              onClick={() => setShowInviteModal(true)}
+            >
+              <BiShare />
+              {t('groupDetail.invitePeople') || 'Invite People'}
+            </button>
+          )}
           <button
             className="action-btn secondary"
             onClick={() => onNavigate('groupSettings', { groupId })}
@@ -288,6 +298,13 @@ function GroupDetailPage({ groupId, onNavigate, onLogout }) {
             {t('groupDetail.settings')}
           </button>
         </section>
+
+        {/* Invite Modal */}
+        <InviteModal
+          isOpen={showInviteModal}
+          onClose={() => setShowInviteModal(false)}
+          groupId={groupId}
+        />
 
         <div className="content-footer"></div>
       </main>
