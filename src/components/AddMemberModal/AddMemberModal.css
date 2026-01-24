@@ -387,7 +387,7 @@
   }
 
   .modal-input {
-    padding: 0.75rem 1rem;
+    /* padding: 0.75rem 1rem; */
     font-size: 16px;
     min-height: 44px;
   }
@@ -454,7 +454,7 @@
   }
 
   .modal-input {
-    padding: 0.75rem 1rem;
+    /* padding: 0.75rem 1rem; */
     font-size: 16px;
     min-height: 44px;
   }
@@ -532,9 +532,7 @@
     gap: 1.75rem;
   }
 
-  .modal-input {
-    padding: 0.875rem 1rem;
-  }
+
 
   .modal-actions {
     grid-template-columns: 1fr 1fr;
@@ -573,7 +571,7 @@
   }
 
   .modal-input {
-    padding: 1rem 1.25rem;
+    /* padding: 1rem 1.25rem; */
     font-size: 1rem;
     min-height: 48px;
   }

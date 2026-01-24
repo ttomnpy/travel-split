@@ -12,6 +12,7 @@ function InviteModal({ isOpen, onClose, groupId }) {
   const [inviteCode, setInviteCode] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [copiedUrl, setCopiedUrl] = useState(false)
   const [error, setError] = useState('')
   const hiddenInputRef = useRef(null)
 
@@ -92,6 +93,36 @@ function InviteModal({ isOpen, onClose, groupId }) {
     }
   }
 
+  const copyInviteUrl = async () => {
+    try {
+      const inviteUrl = `${window.location.origin}/join/${inviteCode}`
+      
+      // Try modern Clipboard API first
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(inviteUrl)
+      } else {
+        // Fallback for iOS Safari: use hidden input ref
+        if (hiddenInputRef.current) {
+          hiddenInputRef.current.value = inviteUrl
+          hiddenInputRef.current.select()
+          const success = document.execCommand('copy')
+          
+          if (!success) {
+            throw new Error('Copy command failed')
+          }
+        }
+      }
+      
+      setCopiedUrl(true)
+      
+      // Reset copied status after 2 seconds
+      setTimeout(() => setCopiedUrl(false), 2000)
+    } catch (err) {
+      debugError('Failed to copy invite URL to clipboard', err)
+      setError('Failed to copy invite URL')
+    }
+  }
+
   if (!isOpen) return null
 
   return (
@@ -137,6 +168,30 @@ function InviteModal({ isOpen, onClose, groupId }) {
                   title={copied ? 'Copied!' : 'Copy invite code'}
                 >
                   {copied ? (
+                    <>
+                      <BiCheck />
+                      <span>{t('invite.copied') || 'Copied!'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <BiCopy />
+                      <span>{t('invite.copy') || 'Copy'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Invite URL Display */}
+              <div className="invite-url-container">
+                <div className="invite-url">
+                  <span className="url-text">{window.location.origin}/join/{inviteCode}</span>
+                </div>
+                <button
+                  className={`invite-copy-url-btn ${copiedUrl ? 'copied' : ''}`}
+                  onClick={copyInviteUrl}
+                  title={copiedUrl ? 'Copied!' : 'Copy invite URL'}
+                >
+                  {copiedUrl ? (
                     <>
                       <BiCheck />
                       <span>{t('invite.copied') || 'Copied!'}</span>

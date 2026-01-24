@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { ref, get } from 'firebase/database'
 import { rtdb } from '../../firebase'
 import { useAuth } from '../../contexts/AuthContext'
@@ -10,7 +11,9 @@ import { claimDummyMember, joinGroupById } from '../../services/groupService'
 import { BiLink, BiChevronLeft, BiCheck, BiX, BiWallet } from 'react-icons/bi'
 import './JoinGroupPage.css'
 
-function JoinGroupPage({ onBack = () => {}, onGroupJoined = () => {}, onLogout = () => {} }) {
+function JoinGroupPage({ onLogout = () => {} }) {
+  const navigate = useNavigate()
+  const { inviteCode: inviteCodeFromUrl } = useParams()
   const { user, userProfile } = useAuth()
   const { t, currentLanguage, setLanguage } = useTranslation()
 
@@ -23,13 +26,31 @@ function JoinGroupPage({ onBack = () => {}, onGroupJoined = () => {}, onLogout =
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
 
+  // Auto-fill and search if invite code is in URL
+  useEffect(() => {
+    if (inviteCodeFromUrl) {
+      const upperCode = inviteCodeFromUrl.toUpperCase()
+      setInviteCode(upperCode)
+      // Trigger search after setting the code
+      handleSearchGroup(upperCode)
+    }
+  }, [inviteCodeFromUrl])
+
   const handleInputChange = (e) => {
     setInviteCode(e.target.value.toUpperCase())
     setError('')
   }
 
-  const handleSearchGroup = async () => {
-    if (!inviteCode.trim()) {
+  const handleSearchGroup = async (codeToSearch = null) => {
+    let codeToUse = codeToSearch || inviteCode || ''
+    
+    // Ensure it's always a string
+    if (typeof codeToUse !== 'string') {
+      codeToUse = String(codeToUse)
+    }
+    codeToUse = codeToUse.trim()
+    
+    if (!codeToUse) {
       setError(t('joinGroup.inviteCodeRequired') || 'Please enter an invite code')
       return
     }
@@ -37,9 +58,10 @@ function JoinGroupPage({ onBack = () => {}, onGroupJoined = () => {}, onLogout =
     setIsLoading(true)
     setError('')
 
+    let normalizedCode = ''
     try {
       // Use userProfile from AuthContext (already fetched globally)
-      const normalizedCode = inviteCode.toUpperCase().trim()
+      normalizedCode = codeToUse.toUpperCase()
       debugLog('Searching for invite code', { code: normalizedCode })
 
       // Get group ID from invite code
@@ -188,11 +210,7 @@ function JoinGroupPage({ onBack = () => {}, onGroupJoined = () => {}, onLogout =
 
       // Callback to parent
       setTimeout(() => {
-        onGroupJoined({
-          groupId: groupData.id,
-          groupName: groupData.name,
-          action: 'claimed'
-        })
+        navigate(`/groups/${groupData.id}`)
       }, 1500)
     } catch (err) {
       debugError('Error claiming dummy member', err)
@@ -228,11 +246,7 @@ function JoinGroupPage({ onBack = () => {}, onGroupJoined = () => {}, onLogout =
 
       // Callback to parent
       setTimeout(() => {
-        onGroupJoined({
-          groupId: groupData.id,
-          groupName: groupData.name,
-          action: 'joined'
-        })
+        navigate(`/groups/${groupData.id}`)
       }, 1500)
     } catch (err) {
       debugError('Error joining group', err)
@@ -249,7 +263,7 @@ function JoinGroupPage({ onBack = () => {}, onGroupJoined = () => {}, onLogout =
       setGroupData(null)
       setDummyMembers([])
     } else {
-      onBack()
+      navigate('/')
     }
   }
 
@@ -317,7 +331,7 @@ function JoinGroupPage({ onBack = () => {}, onGroupJoined = () => {}, onLogout =
 
             <button
               className="search-button"
-              onClick={handleSearchGroup}
+              onClick={() => handleSearchGroup()}
               disabled={!inviteCode.trim()}
             >
               {t('joinGroup.search') || 'Search'}
@@ -428,10 +442,7 @@ function JoinGroupPage({ onBack = () => {}, onGroupJoined = () => {}, onLogout =
             <p>{successMessage}</p>
             <button
               className="success-button"
-              onClick={() => onGroupJoined({
-                groupId: groupData.id,
-                groupName: groupData.name
-              })}
+              onClick={() => navigate(`/groups/${groupData.id}`)}
             >
               {t('joinGroup.goToGroup') || 'Go to Group'}
             </button>

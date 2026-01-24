@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ref, onValue } from 'firebase/database'
 import { rtdb } from '../../firebase'
 import { useAuth } from '../../contexts/AuthContext'
@@ -9,7 +10,8 @@ import { Button, LoadingSpinner, HeaderControls, CreateGroupModal } from '../../
 import { BiMoney, BiPlus, BiLink, BiTrendingUp, BiX, BiChevronRight, BiWallet, BiGroup } from 'react-icons/bi'
 import './HomePage.css'
 
-function HomePage({ onLogout, onNavigate = () => {} }) {
+function HomePage({ onLogout }) {
+  const navigate = useNavigate()
   const { user, userProfile } = useAuth()
   const { t, setLanguage, currentLanguage } = useTranslation()
   
@@ -310,7 +312,7 @@ function HomePage({ onLogout, onNavigate = () => {} }) {
           </button>
           <button
             className="action-btn secondary"
-            onClick={() => onNavigate('joinGroup')}
+            onClick={() => navigate('/join')}
           >
             <BiLink className="btn-icon" />
             <span>{t('home.joinTrip')}</span>
@@ -326,7 +328,7 @@ function HomePage({ onLogout, onNavigate = () => {} }) {
                 {t('home.activeTrips')}
               </h2>
               {userGroups.length > 3 && (
-                <button className="view-all-btn" onClick={() => onNavigate('allGroups')}>
+                <button className="view-all-btn" onClick={() => navigate('/groups')}>
                   {t('home.viewAll')} <BiChevronRight />
                 </button>
               )}
@@ -340,7 +342,7 @@ function HomePage({ onLogout, onNavigate = () => {} }) {
                 <div
                   key={group.id}
                   className="group-card"
-                  onClick={() => onNavigate('groupDetail', { groupId: group.id })}
+                  onClick={() => navigate(`/groups/${group.id}`)}
                 >
                   <div className="group-header">
                     <div className="group-emoji">🌍</div>
@@ -372,7 +374,7 @@ function HomePage({ onLogout, onNavigate = () => {} }) {
             </div>
             <button
               className="empty-cta"
-              onClick={() => onNavigate('createGroup')}
+              onClick={() => navigate('/create-group')}
             >
               <BiPlus /> {t('home.createTrip')}
             </button>
@@ -385,7 +387,7 @@ function HomePage({ onLogout, onNavigate = () => {} }) {
             <div className="section-header">
               <h2 className="section-title">{t('home.recentPayments')}</h2>
               {recentExpenses.length > 3 && (
-                <button className="view-all-btn" onClick={() => onNavigate('allActivity')}>
+                <button className="view-all-btn" onClick={() => navigate('/activity')}>
                   {t('home.viewAll')} <BiChevronRight />
                 </button>
               )}
@@ -396,7 +398,7 @@ function HomePage({ onLogout, onNavigate = () => {} }) {
                 <div
                   key={expense.id}
                   className="activity-entry"
-                  onClick={() => onNavigate('groupDetail', { groupId: expense.groupId })}
+                  onClick={() => navigate(`/groups/${expense.groupId}`)}
                 >
                   <div className="activity-visual">
                     <div className="activity-icon">{getCategoryEmoji(expense.cat)}</div>
@@ -426,7 +428,7 @@ function HomePage({ onLogout, onNavigate = () => {} }) {
         onClose={() => setIsCreateGroupModalOpen(false)}
         onGroupCreated={(newGroup) => {
           // newGroup contains groupId and inviteCode
-          onNavigate('groupDetail', { groupId: newGroup.groupId })
+          navigate(`/groups/${newGroup.groupId}`)
         }}
         userId={user?.uid}
         userData={{

@@ -11,7 +11,8 @@
     "delete": "Delete",
     "edit": "Edit",
     "back": "Back",
-    "close": "Close"
+    "close": "Close",
+    "saving": "Saving..."
   },
   "auth": {
     "email": "Email",
@@ -217,6 +218,42 @@
     "successTitle": "Success!",
     "goToGroup": "Go to Group",
     "group": "Group",
-    "currency": "USD"
+    "currency": "USD",
+    "confirmLeave": "Are you sure you want to leave this group? This action cannot be undone.",
+    "errorLeaving": "Error leaving group"
+  },
+  "groupSettings": {
+    "title": "Group Settings",
+    "groupSettings": "Group Settings",
+    "ownerOnly": "Only the group owner can modify these settings",
+    "groupName": "Group Name",
+    "enterGroupName": "Enter group name",
+    "currency": "Currency",
+    "description": "Description",
+    "enterDescription": "Enter group description",
+    "memberSettings": "Your Settings in This Group",
+    "yourName": "Your Name in This Group",
+    "enterName": "Enter your name",
+    "nameHint": "This name will be shown to other group members for expenses",
+    "nameUpdated": "Your name has been updated!",
+    "dangerZone": "Danger Zone",
+    "leaveGroup": "Leave This Group",
+    "leaveDescription": "You will no longer see this group or be able to access its expenses",
+    "leaveButton": "Leave Group",
+    "deleteGroup": "Delete This Group",
+    "deleteDescription": "Permanently delete this group and all its data. This action cannot be undone.",
+    "deleteButton": "Delete Group",
+    "confirmLeaveTitle": "Leave Group?",
+    "confirmLeaveMessage": "Are you sure you want to leave this group? You will no longer have access to it.",
+    "confirmLeave": "Leave Group",
+    "confirmDeleteTitle": "Delete Group?",
+    "confirmDeleteMessage": "Are you sure you want to delete this group? This action cannot be undone and all group data will be permanently deleted.",
+    "confirmDelete": "Delete Group",
+    "deleteError": "Error deleting group",
+    "savedSuccess": "Settings saved successfully!",
+    "saveError": "Error saving settings",
+    "nameRequired": "Name cannot be empty",
+    "updateError": "Error updating name",
+    "noChanges": "No changes to save"
   }
 }

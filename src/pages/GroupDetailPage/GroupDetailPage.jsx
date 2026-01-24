@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import { ref, onValue } from 'firebase/database'
 import { rtdb } from '../../firebase'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTranslation } from '../../hooks/useTranslation'
 import { getDisplayName } from '../../utils/displayNameHelper'
 import { debugLog, debugError } from '../../utils/debug'
-import { getGroup, leaveGroup } from '../../services/groupService'
+import { getGroup } from '../../services/groupService'
 import { AddMemberModal, InviteModal, MembersList, LoadingSpinner, HeaderControls } from '../../components'
 import { BiUndo, BiPlus, BiMoney, BiX, BiLock, BiShare } from 'react-icons/bi';
 import './GroupDetailPage.css'
 
-function GroupDetailPage({ groupId, onNavigate, onLogout }) {
+function GroupDetailPage({ onLogout }) {
+  const { groupId } = useParams()
+  const navigate = useNavigate()
   const { user, userProfile } = useAuth()
   const { t, currentLanguage, setLanguage } = useTranslation()
 
@@ -74,24 +77,6 @@ function GroupDetailPage({ groupId, onNavigate, onLogout }) {
     setShowAddMemberModal(false)
   }
 
-  const handleLeaveGroup = async () => {
-    if (!window.confirm('Are you sure you want to leave this group? This action cannot be undone.')) {
-      return
-    }
-
-    try {
-      setIsLoading(true)
-      await leaveGroup(groupId, user.uid)
-      debugLog('Successfully left group', { groupId })
-      // Navigate back to home
-      onNavigate('home')
-    } catch (err) {
-      debugError('Error leaving group', err)
-      setError(err.message || 'Failed to leave group')
-      setIsLoading(false)
-    }
-  }
-
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -118,7 +103,7 @@ function GroupDetailPage({ groupId, onNavigate, onLogout }) {
         <header className="error-header">
           <button
             className="error-back-button"
-            onClick={() => onNavigate('home')}
+            onClick={() => navigate('/')}
             aria-label="Go back to home"
           >
             <BiUndo />
@@ -161,7 +146,7 @@ function GroupDetailPage({ groupId, onNavigate, onLogout }) {
 
           <button
             className="error-action-button"
-            onClick={() => onNavigate('home')}
+            onClick={() => navigate('/')}
           >
             <BiUndo size={18} />
             <span>{t('groupDetail.backToHome')}</span>
@@ -179,7 +164,7 @@ function GroupDetailPage({ groupId, onNavigate, onLogout }) {
         <header className="error-header">
           <button
             className="error-back-button"
-            onClick={() => onNavigate('home')}
+            onClick={() => navigate('/')}
             aria-label="Go back to home"
           >
             <BiUndo />
@@ -211,7 +196,7 @@ function GroupDetailPage({ groupId, onNavigate, onLogout }) {
 
           <button
             className="error-action-button"
-            onClick={() => onNavigate('home')}
+            onClick={() => navigate('/')}
           >
             <BiUndo size={18} />
             <span>{t('groupDetail.backToHome')}</span>
@@ -227,7 +212,7 @@ function GroupDetailPage({ groupId, onNavigate, onLogout }) {
       <header className="group-detail-header">
         <button
           className="back-button"
-          onClick={() => onNavigate('home')}
+          onClick={() => navigate('/')}
           aria-label="Go back"
         >
           <BiUndo />
@@ -241,20 +226,6 @@ function GroupDetailPage({ groupId, onNavigate, onLogout }) {
           displayName={getDisplayName(userProfile, user)}
         />
       </header>
-
-      {/* Group Controls - Show leave button for non-owners */}
-      {!isOwner && (
-        <div className="group-controls">
-          <button
-            className="leave-group-button"
-            onClick={handleLeaveGroup}
-            disabled={isLoading}
-          >
-            <BiX size={18} />
-            <span>Leave Group</span>
-          </button>
-        </div>
-      )}
 
       {/* Main Content */}
       <main className="group-detail-main">
@@ -310,7 +281,7 @@ function GroupDetailPage({ groupId, onNavigate, onLogout }) {
         <section className="group-actions">
           <button
             className="action-btn primary"
-            onClick={() => onNavigate('addExpense', { groupId })}
+            onClick={() => navigate(`/groups/${groupId}/add-expense`)}
           >
             <BiPlus />
             {t('groupDetail.addExpense')}
@@ -326,7 +297,7 @@ function GroupDetailPage({ groupId, onNavigate, onLogout }) {
           )}
           <button
             className="action-btn secondary"
-            onClick={() => onNavigate('groupSettings', { groupId })}
+            onClick={() => navigate(`/groups/${groupId}/settings`)}
           >
             {t('groupDetail.settings')}
           </button>

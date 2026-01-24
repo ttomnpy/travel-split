@@ -101,15 +101,15 @@ export const createGroup = async (userId, groupData) => {
 
     // Batch update: write group + add to user's groups + add invite code index
     const updates = {}
-    updates[`groups/${groupId}`] = newGroup
-    updates[`users/${userId}/groups/${groupId}`] = {
+    updates[`groups/${String(groupId)}`] = newGroup
+    updates[`users/${String(userId)}/groups/${String(groupId)}`] = {
       name: newGroup.name,
       role: 'owner',
       lastActivity: now,
       unreadCount: 0
     }
     // Add to invite code reverse index for O(1) lookup
-    updates[`inviteCodes/${inviteCode}`] = groupId
+    updates[`inviteCodes/${String(inviteCode)}`] = String(groupId)
 
     await update(ref(rtdb), updates)
 
@@ -169,9 +169,9 @@ export const addDummyMember = async (groupId, memberName, userId, userRole = 'me
 
     // Batch update
     const updates = {}
-    updates[`groups/${groupId}/members/${dummyId}`] = newMember
-    updates[`groups/${groupId}/summary/memberCount`] = (group.summary?.memberCount || 1) + 1
-    updates[`groups/${groupId}/summary/balances/${dummyId}`] = 0
+    updates[`groups/${String(groupId)}/members/${String(dummyId)}`] = newMember
+    updates[`groups/${String(groupId)}/summary/memberCount`] = (group.summary?.memberCount || 1) + 1
+    updates[`groups/${String(groupId)}/summary/balances/${String(dummyId)}`] = 0
 
     await update(ref(rtdb), updates)
 
@@ -276,12 +276,12 @@ export const claimDummyMember = async (groupId, dummyId, userId, userName, userE
     if (balances[dummyId] !== undefined) {
       balances[userId] = balances[dummyId]
       delete balances[dummyId]
-      updates[`groups/${groupId}/summary/balances`] = balances
+      updates[`groups/${String(groupId)}/summary/balances`] = balances
     }
 
     // Add to member history
-    const historyId = push(ref(rtdb, `groups/${groupId}/memberHistory`)).key
-    updates[`groups/${groupId}/memberHistory/${historyId}`] = {
+    const historyId = push(ref(rtdb, `groups/${String(groupId)}/memberHistory`)).key
+    updates[`groups/${String(groupId)}/memberHistory/${String(historyId)}`] = {
       action: 'dummy_linked',
       dummyId,
       dummyName: dummy.name,
@@ -292,7 +292,7 @@ export const claimDummyMember = async (groupId, dummyId, userId, userName, userE
     }
 
     // Update user's group reference
-    updates[`users/${userId}/groups/${groupId}`] = {
+    updates[`users/${String(userId)}/groups/${String(groupId)}`] = {
       name: group.name,
       role: realMember.role,
       lastActivity: now,
@@ -384,7 +384,7 @@ export const updateGroupInfo = async (groupId, userId, updates) => {
     }
 
     const updateData = {}
-    updateData[`groups/${groupId}`] = { ...group, ...updates }
+    updateData[`groups/${String(groupId)}`] = { ...group, ...updates }
 
     await update(ref(rtdb), updateData)
 
@@ -448,10 +448,10 @@ export const joinGroupByInviteCode = async (inviteCode, userId, userData) => {
 
     // Batch updates
     const updates = {}
-    updates[`groups/${groupId}/members/${userId}`] = newMember
-    updates[`groups/${groupId}/summary/memberCount`] = (Object.keys(group.members || {}).length) + 1
-    updates[`groups/${groupId}/summary/balances/${userId}`] = 0
-    updates[`users/${userId}/groups/${groupId}`] = {
+    updates[`groups/${String(groupId)}/members/${String(userId)}`] = newMember
+    updates[`groups/${String(groupId)}/summary/memberCount`] = (Object.keys(group.members || {}).length) + 1
+    updates[`groups/${String(groupId)}/summary/balances/${String(userId)}`] = 0
+    updates[`users/${String(userId)}/groups/${String(groupId)}`] = {
       name: group.name,
       role: 'member',
       lastActivity: now,
@@ -459,7 +459,7 @@ export const joinGroupByInviteCode = async (inviteCode, userId, userData) => {
     }
 
     const historyId = push(ref(rtdb, 'dummy')).key
-    updates[`groups/${groupId}/memberHistory/${historyId}`] = {
+    updates[`groups/${String(groupId)}/memberHistory/${String(historyId)}`] = {
       action: 'joined',
       memberId: userId,
       memberName: userData?.displayName || 'Member',
@@ -516,10 +516,10 @@ export const joinGroupById = async (groupId, userId, userData) => {
 
     // Batch updates
     const updates = {}
-    updates[`groups/${groupId}/members/${userId}`] = newMember
-    updates[`groups/${groupId}/summary/memberCount`] = (Object.keys(group.members || {}).length) + 1
-    updates[`groups/${groupId}/summary/balances/${userId}`] = 0
-    updates[`users/${userId}/groups/${groupId}`] = {
+    updates[`groups/${String(groupId)}/members/${String(userId)}`] = newMember
+    updates[`groups/${String(groupId)}/summary/memberCount`] = (Object.keys(group.members || {}).length) + 1
+    updates[`groups/${String(groupId)}/summary/balances/${String(userId)}`] = 0
+    updates[`users/${String(userId)}/groups/${String(groupId)}`] = {
       name: group.name,
       role: 'member',
       lastActivity: now,
@@ -576,21 +576,21 @@ export const leaveGroup = async (groupId, userId) => {
     const updates = {}
     
     // Remove user from group's members
-    updates[`groups/${groupId}/members/${userId}`] = null
+    updates[`groups/${String(groupId)}/members/${String(userId)}`] = null
     
     // Remove group from user's groups
-    updates[`users/${userId}/groups/${groupId}`] = null
+    updates[`users/${String(userId)}/groups/${String(groupId)}`] = null
     
     // Update member count in summary
     const currentMemberCount = Object.keys(group.members || {}).length
-    updates[`groups/${groupId}/summary/memberCount`] = Math.max(0, currentMemberCount - 1)
+    updates[`groups/${String(groupId)}/summary/memberCount`] = Math.max(0, currentMemberCount - 1)
     
     // Remove user's balance from summary
-    updates[`groups/${groupId}/summary/balances/${userId}`] = null
+    updates[`groups/${String(groupId)}/summary/balances/${String(userId)}`] = null
 
     // Record in member history
     const historyId = push(ref(rtdb, 'dummy')).key
-    updates[`groups/${groupId}/memberHistory/${historyId}`] = {
+    updates[`groups/${String(groupId)}/memberHistory/${historyId}`] = {
       action: 'member_left',
       memberId: userId,
       memberName: group.members[userId]?.name || 'Unknown',
@@ -611,3 +611,64 @@ export const leaveGroup = async (groupId, userId) => {
     throw error
   }
 }
+
+/**
+ * Delete a group (owner only)
+ * Removes group and all associated data
+ */
+export const deleteGroup = async (groupId, userId) => {
+  try {
+    if (!groupId || !userId) {
+      throw new Error('Group ID and user ID are required')
+    }
+
+    debugLog('Attempting to delete group', { groupId, userId })
+
+    // Get group data to verify ownership
+    const groupRef = ref(rtdb, `groups/${groupId}`)
+    const groupSnapshot = await get(groupRef)
+
+    if (!groupSnapshot.exists()) {
+      throw new Error('Group not found')
+    }
+
+    const group = groupSnapshot.val()
+
+    // Verify user is owner
+    if (group.owner !== userId && group.createdBy !== userId) {
+      throw new Error('Only group owner can delete the group')
+    }
+
+    // Delete group and all related data
+    const updates = {}
+
+    // Remove the group itself
+    updates[`groups/${String(groupId)}`] = null
+
+    // Remove group from all members' user data
+    if (group.members) {
+      Object.keys(group.members).forEach((memberId) => {
+        updates[`users/${String(memberId)}/groups/${String(groupId)}`] = null
+      })
+    }
+
+    // Remove invite code index
+    if (group.inviteCode) {
+      updates[`inviteCodes/${String(group.inviteCode)}`] = null
+    }
+
+    await update(ref(rtdb), updates)
+
+    debugLog('Successfully deleted group', { groupId, userId })
+
+    return {
+      success: true,
+      groupId,
+      groupName: group.name
+    }
+  } catch (error) {
+    debugError('Error deleting group', error)
+    throw error
+  }
+}
+

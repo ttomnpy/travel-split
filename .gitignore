@@ -27,4 +27,5 @@ dist-ssr
 .github
 .shared
 
-SPEC.md
+*.md
+!README.md

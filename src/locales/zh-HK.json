@@ -11,7 +11,8 @@
     "delete": "刪除",
     "edit": "編輯",
     "back": "返回",
-    "close": "關閉"
+    "close": "關閉",
+    "saving": "保存中..."
   },
   "auth": {
     "email": "電子郵件",
@@ -217,6 +218,42 @@
     "successTitle": "成功！",
     "goToGroup": "前往群組",
     "group": "群組",
-    "currency": "USD"
+    "currency": "USD",
+    "confirmLeave": "你確定要離開此群組嗎？此操作無法撤銷。",
+    "errorLeaving": "離開群組時出錯"
+  },
+  "groupSettings": {
+    "title": "群組設置",
+    "groupSettings": "群組設置",
+    "ownerOnly": "只有群組擁有者可以修改這些設置",
+    "groupName": "群組名稱",
+    "enterGroupName": "輸入群組名稱",
+    "currency": "貨幣",
+    "description": "描述",
+    "enterDescription": "輸入群組描述",
+    "memberSettings": "你在此群組中的設置",
+    "yourName": "你在此群組中的名字",
+    "enterName": "輸入你的名字",
+    "nameHint": "此名字將顯示給其他群組成員用於費用記錄",
+    "nameUpdated": "你的名字已更新！",
+    "dangerZone": "危險區域",
+    "leaveGroup": "離開此群組",
+    "leaveDescription": "你將無法再看到此群組或訪問其費用記錄",
+    "leaveButton": "離開群組",
+    "deleteGroup": "刪除此群組",
+    "deleteDescription": "永久刪除此群組及其所有數據。此操作無法撤銷。",
+    "deleteButton": "刪除群組",
+    "confirmLeaveTitle": "離開群組？",
+    "confirmLeaveMessage": "你確定要離開此群組嗎？你將無法再訪問它。",
+    "confirmLeave": "離開群組",
+    "confirmDeleteTitle": "刪除群組？",
+    "confirmDeleteMessage": "你確定要刪除此群組嗎？此操作無法撤銷，所有群組數據將被永久刪除。",
+    "confirmDelete": "刪除群組",
+    "deleteError": "刪除群組時出錯",
+    "savedSuccess": "設置已成功保存！",
+    "saveError": "保存設置時出錯",
+    "nameRequired": "名字不能為空",
+    "updateError": "更新名字時出錯",
+    "noChanges": "沒有要保存的更改"
   }
 }
