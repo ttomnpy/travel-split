@@ -254,6 +254,12 @@
     "saveError": "Error saving settings",
     "nameRequired": "Name cannot be empty",
     "updateError": "Error updating name",
-    "noChanges": "No changes to save"
+    "noChanges": "No changes to save",
+    "manageMembers": "Manage Members",
+    "manageMembersDesc": "Change member names or remove members from the group",
+    "removeMemberTitle": "Remove Member?",
+    "removeMemberMessage": "Are you sure you want to remove \"{{memberName}}\" from this group? They will no longer have access to group data.",
+    "removeError": "Error removing member",
+    "remove": "Remove"
   }
 }

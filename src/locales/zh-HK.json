@@ -254,6 +254,12 @@
     "saveError": "保存設置時出錯",
     "nameRequired": "名字不能為空",
     "updateError": "更新名字時出錯",
-    "noChanges": "沒有要保存的更改"
+    "noChanges": "沒有要保存的更改",
+    "manageMembers": "管理成員",
+    "manageMembersDesc": "更改成員名稱或從群組中移除成員",
+    "removeMemberTitle": "移除成員？",
+    "removeMemberMessage": "你確定要從此群組中移除「{{memberName}}」嗎？他們將無法再訪問群組數據。",
+    "removeError": "移除成員時出錯",
+    "remove": "移除"
   }
 }

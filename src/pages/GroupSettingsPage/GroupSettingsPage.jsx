@@ -7,7 +7,7 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { getDisplayName } from '../../utils/displayNameHelper'
 import { debugLog, debugError } from '../../utils/debug'
 import { leaveGroup, deleteGroup } from '../../services/groupService'
-import { HeaderControls, LoadingSpinner, ConfirmationModal } from '../../components'
+import { HeaderControls, LoadingSpinner, ConfirmationModal, MemberManagement } from '../../components'
 import { BiUndo, BiX } from 'react-icons/bi'
 import './GroupSettingsPage.css'
 
@@ -25,6 +25,7 @@ function GroupSettingsPage({ onLogout }) {
   const [isSavingMemberName, setIsSavingMemberName] = useState(false)
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
+  const [refreshMembers, setRefreshMembers] = useState(0)
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
     type: null, // 'leave' or 'delete'
@@ -334,6 +335,16 @@ function GroupSettingsPage({ onLogout }) {
               {isSavingSettings ? (t('common.saving') || 'Saving...') : (t('common.save') || 'Save Changes')}
             </button>
           </section>
+        )}
+
+        {/* Member Management (Owner Only) */}
+        {isOwner && (
+          <MemberManagement
+            groupId={groupId}
+            members={group?.members}
+            currentUserId={user?.uid}
+            onMembersChange={() => setRefreshMembers((prev) => prev + 1)}
+          />
         )}
 
         {/* Member Settings */}

@@ -672,3 +672,130 @@ export const deleteGroup = async (groupId, userId) => {
   }
 }
 
+/**
+ * Remove a member from group (owner only)
+ * Removes the member and updates all related data
+ */
+export const removeMemberFromGroup = async (groupId, targetMemberId, ownerId) => {
+  try {
+    if (!groupId || !targetMemberId || !ownerId) {
+      throw new Error('Group ID, member ID, and owner ID are required')
+    }
+
+    debugLog('Attempting to remove member from group', { groupId, targetMemberId, ownerId })
+
+    // Get group data to verify ownership
+    const groupRef = ref(rtdb, `groups/${groupId}`)
+    const groupSnapshot = await get(groupRef)
+
+    if (!groupSnapshot.exists()) {
+      throw new Error('Group not found')
+    }
+
+    const group = groupSnapshot.val()
+
+    // Verify user is owner
+    if (group.owner !== ownerId && group.createdBy !== ownerId) {
+      throw new Error('Only group owner can remove members')
+    }
+
+    // Cannot remove owner
+    if (targetMemberId === group.owner || targetMemberId === group.createdBy) {
+      throw new Error('Cannot remove the group owner')
+    }
+
+    // Check if member exists in the group
+    if (!group.members || !group.members[targetMemberId]) {
+      throw new Error('Member not found in this group')
+    }
+
+    // Get member info for logging
+    const memberInfo = group.members[targetMemberId]
+
+    // Update data to remove member
+    const updates = {}
+
+    // Remove from group members
+    updates[`groups/${String(groupId)}/members/${String(targetMemberId)}`] = null
+
+    // Remove group from member's user data (if real member)
+    if (memberInfo.type === 'real') {
+      updates[`users/${String(targetMemberId)}/groups/${String(groupId)}`] = null
+    }
+
+    // Update member count in summary
+    const memberCount = Math.max(0, (group.summary?.memberCount || 1) - 1)
+    updates[`groups/${String(groupId)}/summary/memberCount`] = memberCount
+
+    await update(ref(rtdb), updates)
+
+    debugLog('Successfully removed member from group', { groupId, targetMemberId, ownerId })
+
+    return {
+      success: true,
+      groupId,
+      removedMemberId: targetMemberId,
+      memberName: memberInfo.name
+    }
+  } catch (error) {
+    debugError('Error removing member from group', error)
+    throw error
+  }
+}
+
+/**
+ * Update member name by owner
+ * Owner can change any member's name in the group
+ */
+export const updateMemberNameAsOwner = async (groupId, targetMemberId, newName, ownerId) => {
+  try {
+    if (!groupId || !targetMemberId || !newName || !ownerId) {
+      throw new Error('Group ID, member ID, new name, and owner ID are required')
+    }
+
+    if (!newName.trim()) {
+      throw new Error('Member name cannot be empty')
+    }
+
+    debugLog('Attempting to update member name as owner', { groupId, targetMemberId, ownerId })
+
+    // Get group data to verify ownership
+    const groupRef = ref(rtdb, `groups/${groupId}`)
+    const groupSnapshot = await get(groupRef)
+
+    if (!groupSnapshot.exists()) {
+      throw new Error('Group not found')
+    }
+
+    const group = groupSnapshot.val()
+
+    // Verify user is owner
+    if (group.owner !== ownerId && group.createdBy !== ownerId) {
+      throw new Error('Only group owner can manage member names')
+    }
+
+    // Check if target member exists in the group
+    if (!group.members || !group.members[targetMemberId]) {
+      throw new Error('Member not found in this group')
+    }
+
+    // Update member name
+    const updates = {}
+    updates[`groups/${String(groupId)}/members/${String(targetMemberId)}/name`] = newName.trim()
+
+    await update(ref(rtdb), updates)
+
+    debugLog('Successfully updated member name', { groupId, targetMemberId, ownerId })
+
+    return {
+      success: true,
+      groupId,
+      memberId: targetMemberId,
+      newName: newName.trim()
+    }
+  } catch (error) {
+    debugError('Error updating member name', error)
+    throw error
+  }
+}
+
