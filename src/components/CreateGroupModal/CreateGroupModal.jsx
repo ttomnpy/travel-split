@@ -1,6 +1,7 @@
 ﻿import React, { useState, useRef, useEffect } from 'react';
 import { BiX, BiLoader } from 'react-icons/bi';
 import { createGroup } from '../../services/groupService';
+import { getDisplayName } from '../../utils/displayNameHelper';
 import { debugLog, debugError } from '../../utils/debug';
 import './CreateGroupModal.css';
 
@@ -73,7 +74,7 @@ const CreateGroupModal = ({ isOpen, onClose, onGroupCreated, userId, userData })
         name: formData.name.trim(),
         description: formData.description.trim(),
         currency: formData.currency,
-        creatorName: userData?.displayName || 'Owner',
+        creatorName: userData?.displayName || 'Member',
         creatorEmail: userData?.email || '',
         creatorPhoto: userData?.photo || null,
       });

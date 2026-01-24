@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { onAuthStateChanged, signOut, getRedirectResult } from 'firebase/auth'
-import { auth } from '../firebase'
+import { auth, rtdb } from '../firebase'
+import { ref, get } from 'firebase/database'
 import { userService } from '../services/userService'
 import { debugLog, debugWarn, debugError } from '../utils/debug'
 
@@ -16,6 +17,7 @@ function useAuth() {
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
+  const [userProfile, setUserProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [isNewUser, setIsNewUser] = useState(null) 
@@ -90,6 +92,27 @@ export function AuthProvider({ children }) {
               setIsNewUser(result.isNewUser)
               setError(null)
             }
+            
+            // Fetch user profile from database to get displayName
+            try {
+              const userProfileRef = ref(rtdb, `users/${currentUser.uid}`)
+              const snapshot = await get(userProfileRef)
+              if (snapshot.exists()) {
+                const profileData = snapshot.val()
+                debugLog('User profile fetched from database', { 
+                  displayName: profileData.displayName,
+                  email: profileData.email 
+                })
+                setUserProfile(profileData)
+              } else {
+                debugWarn('User profile not found in database', { userId: currentUser.uid })
+                setUserProfile(null)
+              }
+            } catch (profileErr) {
+              debugError('Error fetching user profile from database', profileErr.message)
+              setUserProfile(null)
+            }
+            
             setUser(currentUser)
             setLoading(false)
           } catch (err) {
@@ -103,6 +126,7 @@ export function AuthProvider({ children }) {
       } else {
         debugLog('No User Logged In', null)
         setUser(null)
+        setUserProfile(null)
         setIsNewUser(false)
         setLoading(false)
       }
@@ -126,6 +150,7 @@ export function AuthProvider({ children }) {
 
   const value = {
     user,
+    userProfile,
     loading,
     error,
     logout,

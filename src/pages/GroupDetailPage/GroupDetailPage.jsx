@@ -3,14 +3,15 @@ import { ref, onValue } from 'firebase/database'
 import { rtdb } from '../../firebase'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTranslation } from '../../hooks/useTranslation'
+import { getDisplayName } from '../../utils/displayNameHelper'
 import { debugLog, debugError } from '../../utils/debug'
-import { getGroup } from '../../services/groupService'
+import { getGroup, leaveGroup } from '../../services/groupService'
 import { AddMemberModal, InviteModal, MembersList, LoadingSpinner, HeaderControls } from '../../components'
 import { BiUndo, BiPlus, BiMoney, BiX, BiLock, BiShare } from 'react-icons/bi';
 import './GroupDetailPage.css'
 
 function GroupDetailPage({ groupId, onNavigate, onLogout }) {
-  const { user } = useAuth()
+  const { user, userProfile } = useAuth()
   const { t, currentLanguage, setLanguage } = useTranslation()
 
   const [group, setGroup] = useState(null)
@@ -71,6 +72,24 @@ function GroupDetailPage({ groupId, onNavigate, onLogout }) {
   const handleAddMember = (dummyId, member) => {
     // Member is automatically added via Firebase listener
     setShowAddMemberModal(false)
+  }
+
+  const handleLeaveGroup = async () => {
+    if (!window.confirm('Are you sure you want to leave this group? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      setIsLoading(true)
+      await leaveGroup(groupId, user.uid)
+      debugLog('Successfully left group', { groupId })
+      // Navigate back to home
+      onNavigate('home')
+    } catch (err) {
+      debugError('Error leaving group', err)
+      setError(err.message || 'Failed to leave group')
+      setIsLoading(false)
+    }
   }
 
   const formatCurrency = (amount) => {
@@ -219,9 +238,23 @@ function GroupDetailPage({ groupId, onNavigate, onLogout }) {
           onLanguageChange={setLanguage}
           onLogout={onLogout}
           user={user}
-          displayName={user?.displayName || user?.email?.split('@')[0] || 'User'}
+          displayName={getDisplayName(userProfile, user)}
         />
       </header>
+
+      {/* Group Controls - Show leave button for non-owners */}
+      {!isOwner && (
+        <div className="group-controls">
+          <button
+            className="leave-group-button"
+            onClick={handleLeaveGroup}
+            disabled={isLoading}
+          >
+            <BiX size={18} />
+            <span>Leave Group</span>
+          </button>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="group-detail-main">

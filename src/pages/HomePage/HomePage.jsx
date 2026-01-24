@@ -3,13 +3,14 @@ import { ref, onValue } from 'firebase/database'
 import { rtdb } from '../../firebase'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTranslation } from '../../hooks/useTranslation'
+import { getDisplayName } from '../../utils/displayNameHelper'
 import { debugLog, debugError } from '../../utils/debug'
 import { Button, LoadingSpinner, HeaderControls, CreateGroupModal } from '../../components'
 import { BiMoney, BiPlus, BiLink, BiTrendingUp, BiX, BiChevronRight, BiWallet, BiGroup } from 'react-icons/bi'
 import './HomePage.css'
 
 function HomePage({ onLogout, onNavigate = () => {} }) {
-  const { user } = useAuth()
+  const { user, userProfile } = useAuth()
   const { t, setLanguage, currentLanguage } = useTranslation()
   
   const [userGroups, setUserGroups] = useState([])
@@ -30,11 +31,12 @@ function HomePage({ onLogout, onNavigate = () => {} }) {
     let unsubscribeExpenses = []
     allExpensesRef.current = {}
 
-    const unsubscribeUser = onValue(
-      ref(rtdb, `users/${user.uid}`),
-      (userSnapshot) => {
+    // Fetch user groups
+    const unsubscribeUserGroups = onValue(
+      ref(rtdb, `users/${user.uid}/groups`),
+      (groupsSnapshot) => {
         try {
-          if (!userSnapshot.exists()) {
+          if (!groupsSnapshot.exists()) {
             setUserGroups([])
             setOverallSummary(null)
             setRecentExpenses([])
@@ -42,8 +44,7 @@ function HomePage({ onLogout, onNavigate = () => {} }) {
             return
           }
 
-          const userData = userSnapshot.val()
-          const groups = userData.groups || {}
+          const groups = groupsSnapshot.val()
           
           // Transform groups data
           const groupsArray = Object.entries(groups).map(([groupId, groupData]) => ({
@@ -52,7 +53,7 @@ function HomePage({ onLogout, onNavigate = () => {} }) {
           }))
 
           setUserGroups(groupsArray)
-          setOverallSummary(userData.overallSummary || {
+          setOverallSummary({
             totalGroupCount: 0,
             totalBalance: 0,
             totalPendingAmount: 0
@@ -63,8 +64,31 @@ function HomePage({ onLogout, onNavigate = () => {} }) {
           unsubscribeExpenses = []
           allExpensesRef.current = {}
 
-          // Set up listeners for expenses in each group
+          // Set up listeners for each group's summary and expenses
           for (const groupId of Object.keys(groups)) {
+            // Listen to group summary for member count
+            const groupSummaryRef = ref(rtdb, `groups/${groupId}/summary`)
+            const summaryUnsubscribe = onValue(
+              groupSummaryRef,
+              (summarySnapshot) => {
+                if (summarySnapshot.exists()) {
+                  const summary = summarySnapshot.val()
+                  debugLog(`Group ${groupId} summary updated:`, summary)
+                  // Update the userGroups with the correct memberCount
+                  setUserGroups(prev => prev.map(g => 
+                    g.id === groupId 
+                      ? { ...g, summary }
+                      : g
+                  ))
+                }
+              },
+              (error) => {
+                debugError(`Error listening to group summary for ${groupId}`, error)
+              }
+            )
+            unsubscribeExpenses.push(summaryUnsubscribe)
+
+            // Listen to expenses
             const groupRef = ref(rtdb, `groups/${groupId}/expenses`)
             const unsubscribe = onValue(
               groupRef,
@@ -119,7 +143,7 @@ function HomePage({ onLogout, onNavigate = () => {} }) {
 
     // Cleanup function
     return () => {
-      unsubscribeUser()
+      unsubscribeUserGroups()
       unsubscribeExpenses.forEach(unsub => unsub())
     }
   }, [user?.uid])
@@ -163,7 +187,7 @@ function HomePage({ onLogout, onNavigate = () => {} }) {
     }
   }
 
-  const displayName = user?.displayName || user?.email?.split('@')[0] || 'User'
+  const displayName = getDisplayName(userProfile, user)
 
   if (isLoading) {
     return (
@@ -309,7 +333,10 @@ function HomePage({ onLogout, onNavigate = () => {} }) {
             </div>
 
             <div className="groups-list">
-              {userGroups.slice(0, 3).map((group) => (
+              {userGroups.slice(0, 3).map((group) => {
+                // Calculate member count from summary or members object
+                const memberCount = group.summary?.memberCount || group.memberCount || 0
+                return (
                 <div
                   key={group.id}
                   className="group-card"
@@ -319,7 +346,7 @@ function HomePage({ onLogout, onNavigate = () => {} }) {
                     <div className="group-emoji">🌍</div>
                     <div className="group-info">
                       <h3 className="group-name">{group.name}</h3>
-                      <p className="group-meta">{group.memberCount || 0} {currentLanguage === 'zh-HK' ? '成員' : 'members'}</p>
+                      <p className="group-meta">{memberCount} {currentLanguage === 'zh-HK' ? '成員' : 'members'}</p>
                     </div>
                   </div>
                   <div className="group-footer">
@@ -332,7 +359,8 @@ function HomePage({ onLogout, onNavigate = () => {} }) {
                     <BiChevronRight className="group-arrow" />
                   </div>
                 </div>
-              ))}
+                )
+              })}
             </div>
           </section>
         ) : (
@@ -402,7 +430,7 @@ function HomePage({ onLogout, onNavigate = () => {} }) {
         }}
         userId={user?.uid}
         userData={{
-          displayName: user?.displayName || 'Owner',
+          displayName: getDisplayName(userProfile, user),
           email: user?.email || '',
           photo: user?.photoURL || null
         }}

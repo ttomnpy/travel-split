@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { BiX, BiLoader, BiUser } from 'react-icons/bi';
 import { useTranslation } from '../../hooks/useTranslation'
+import { useAuth } from '../../contexts/AuthContext'
 import { addDummyMember } from '../../services/groupService'
 import { debugLog, debugError } from '../../utils/debug'
 import './AddMemberModal.css'
 
 function AddMemberModal({ isOpen, onClose, groupId, groupMembers, onMemberAdded }) {
+  const { user } = useAuth()
   const { t } = useTranslation()
   const [memberName, setMemberName] = useState('')
   const [error, setError] = useState('')
@@ -60,9 +62,13 @@ function AddMemberModal({ isOpen, onClose, groupId, groupMembers, onMemberAdded 
     setIsLoading(true)
 
     try {
-      // Get current user ID from session/auth context
-      // For now, we need to pass userId from parent
-      const result = await addDummyMember(groupId, memberName.trim())
+      if (!user?.uid) {
+        throw new Error('User not authenticated')
+      }
+
+      debugLog('Adding dummy member', { groupId, memberName: memberName.trim(), userId: user.uid })
+      const result = await addDummyMember(groupId, memberName.trim(), user.uid, 'member')
+      debugLog('Successfully added dummy member', { dummyId: result.dummyId })
 
       setSuccess(true)
       setMemberName('')
@@ -75,7 +81,7 @@ function AddMemberModal({ isOpen, onClose, groupId, groupMembers, onMemberAdded 
         onClose()
       }, 800)
     } catch (err) {
-      debugError('Error adding member', err)
+      debugError('Error adding member', { code: err.code, message: err.message, stack: err.stack })
 
       if (err.message.includes('duplicate')) {
         setError(t('addMember.errors.nameDuplicate'))

@@ -74,7 +74,7 @@ export const createGroup = async (userId, groupData) => {
       members: {
         [userId]: {
           type: 'real',
-          name: groupData.creatorName || 'Owner',
+          name: (groupData.creatorName && groupData.creatorName.trim()) ? groupData.creatorName : (groupData.creatorEmail || 'Member'),
           email: groupData.creatorEmail || '',
           photo: groupData.creatorPhoto || null,
           role: 'owner',
@@ -190,7 +190,7 @@ export const addDummyMember = async (groupId, memberName, userId, userRole = 'me
  * Claim dummy member by real user
  * Links dummy member ID to real user ID
  */
-export const claimDummyMember = async (groupId, dummyId, userId, userName) => {
+export const claimDummyMember = async (groupId, dummyId, userId, userName, userEmail) => {
   try {
     const groupRef = ref(rtdb, `groups/${groupId}`)
     const groupSnapshot = await get(groupRef)
@@ -212,7 +212,7 @@ export const claimDummyMember = async (groupId, dummyId, userId, userName) => {
     const realMember = {
       type: 'real',
       name: userName,
-      email: '',
+      email: userEmail || '',
       photo: null,
       role: dummy.role || 'member',
       joinedAt: now,
@@ -537,6 +537,77 @@ export const joinGroupById = async (groupId, userId, userData) => {
     }
   } catch (error) {
     debugError('Error joining group by ID', error)
+    throw error
+  }
+}
+
+/**
+ * Leave a group as a member
+ * Removes user from group's members and removes group from user's groups list
+ */
+export const leaveGroup = async (groupId, userId) => {
+  try {
+    if (!groupId || !userId) {
+      throw new Error('Group ID and user ID are required')
+    }
+
+    debugLog('Attempting to leave group', { groupId, userId })
+
+    // Check if user is actually a member
+    const groupRef = ref(rtdb, `groups/${groupId}`)
+    const groupSnapshot = await get(groupRef)
+
+    if (!groupSnapshot.exists()) {
+      throw new Error('Group not found')
+    }
+
+    const group = groupSnapshot.val()
+
+    if (!group.members?.[userId]) {
+      throw new Error('You are not a member of this group')
+    }
+
+    // Cannot leave if you're the owner
+    if (group.owner === userId) {
+      throw new Error('Group owner cannot leave. Please transfer ownership or delete the group.')
+    }
+
+    // Prepare batch update to remove user from group
+    const updates = {}
+    
+    // Remove user from group's members
+    updates[`groups/${groupId}/members/${userId}`] = null
+    
+    // Remove group from user's groups
+    updates[`users/${userId}/groups/${groupId}`] = null
+    
+    // Update member count in summary
+    const currentMemberCount = Object.keys(group.members || {}).length
+    updates[`groups/${groupId}/summary/memberCount`] = Math.max(0, currentMemberCount - 1)
+    
+    // Remove user's balance from summary
+    updates[`groups/${groupId}/summary/balances/${userId}`] = null
+
+    // Record in member history
+    const historyId = push(ref(rtdb, 'dummy')).key
+    updates[`groups/${groupId}/memberHistory/${historyId}`] = {
+      action: 'member_left',
+      memberId: userId,
+      memberName: group.members[userId]?.name || 'Unknown',
+      leftAt: Date.now()
+    }
+
+    await update(ref(rtdb), updates)
+
+    debugLog('Successfully left group', { groupId, userId })
+
+    return {
+      success: true,
+      groupId,
+      groupName: group.name
+    }
+  } catch (error) {
+    debugError('Error leaving group', error)
     throw error
   }
 }

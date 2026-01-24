@@ -1,4 +1,4 @@
-import { BiCheck, BiHourglass } from 'react-icons/bi'
+import { BiCheck, BiHourglass, BiCrown } from 'react-icons/bi'
 import { useState, useRef, useEffect } from 'react'
 import './MemberCard.css'
 
@@ -23,28 +23,37 @@ function MemberCard({ member, memberId, isOwner, isCurrentUser }) {
       .substring(0, 2)
   }
 
-  const getStatusBadge = () => {
-    if (isCurrentUser) {
-      return (
-        <span className="status-badge owner">
-          <BiCheck /> You (Owner)
-        </span>
-      )
+  const getStatusIndicators = () => {
+    const indicators = []
+
+    // Owner indicator - icon only with tooltip
+    if (isOwner) {
+      indicators.push({
+        type: 'owner',
+        icon: BiCrown,
+        label: 'Owner'
+      })
     }
 
-    if (member.type === 'real') {
-      return (
-        <span className="status-badge joined">
-          <BiCheck /> Joined
-        </span>
-      )
+    // Joined indicator - icon only with tooltip
+    if (!isOwner && member.type === 'real') {
+      indicators.push({
+        type: 'joined',
+        icon: BiCheck,
+        label: 'Joined'
+      })
     }
 
-    return (
-      <span className="status-badge pending">
-        <BiHourglass /> Pending invite
-      </span>
-    )
+    // Pending indicator - icon only with tooltip
+    if (member.type !== 'real') {
+      indicators.push({
+        type: 'pending',
+        icon: BiHourglass,
+        label: 'Pending invite'
+      })
+    }
+
+    return indicators
   }
 
   const truncateEmail = (email, maxLength = 20) => {
@@ -57,27 +66,26 @@ function MemberCard({ member, memberId, isOwner, isCurrentUser }) {
     return email.substring(0, maxLength) + '...'
   }
 
-  const displayEmail = shouldTruncate ? truncateEmail(member.email) : member.email
+  // Display name - use member.name (group-level customizable name)
+  const displayMemberName = member.name || 'Member'
 
   return (
     <div className="member-card">
       <div className="member-avatar">
         {member.photo ? (
-          <img src={member.photo} alt={member.name} />
+          <img src={member.photo} alt={displayMemberName} />
         ) : (
           <div className="avatar-initials">
-            {getInitials(member.name)}
+            {getInitials(displayMemberName)}
           </div>
         )}
       </div>
 
       <div className="member-info">
         <div className="member-name-row">
-          <h3 className="member-name">{member.name}</h3>
+          <h3 className="member-name">{displayMemberName}</h3>
           {isCurrentUser && (
-            <span className="status-badge owner inline">
-              <BiCheck /> You (Owner)
-            </span>
+            <span className="member-current-user">You</span>
           )}
         </div>
         {member.email && (
@@ -86,16 +94,27 @@ function MemberCard({ member, memberId, isOwner, isCurrentUser }) {
             title={member.email}
             ref={emailRef}
           >
-            {displayEmail}
+            {shouldTruncate ? truncateEmail(member.email) : member.email}
           </p>
         )}
       </div>
 
-      {!isCurrentUser && (
-        <div className="member-status">
-          {getStatusBadge()}
-        </div>
-      )}
+      <div className="member-indicators">
+        {getStatusIndicators().map((indicator, idx) => {
+          const IconComponent = indicator.icon
+          return (
+            <div
+              key={idx}
+              className={`status-indicator status-${indicator.type}`}
+              title={indicator.label}
+              role="img"
+              aria-label={indicator.label}
+            >
+              <IconComponent />
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

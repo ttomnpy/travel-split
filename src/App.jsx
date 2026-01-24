@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { LoadingSpinner } from './components'
-import { LoginPage, HomePage, UserProfileSetupPage, GroupDetailPage } from './pages'
+import { LoginPage, HomePage, UserProfileSetupPage, GroupDetailPage, JoinGroupPage } from './pages'
 import { debugLog } from './utils/debug'
 import './styles/global.css'
 
@@ -93,6 +93,17 @@ function AppContent() {
           <GroupDetailPage 
             groupId={pageParams.groupId}
             onNavigate={handleNavigate}
+            onLogout={logout}
+          />
+        )
+      case 'joinGroup':
+        return (
+          <JoinGroupPage 
+            onBack={() => handleNavigate('home')}
+            onGroupJoined={(groupInfo) => {
+              debugLog('Group joined, navigating to group detail', groupInfo)
+              handleNavigate('groupDetail', { groupId: groupInfo.groupId })
+            }}
             onLogout={logout}
           />
         )
