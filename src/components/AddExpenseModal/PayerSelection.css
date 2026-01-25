@@ -1,0 +1,281 @@
+/* Payer Selection Component */
+.ps-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 12px;
+  background-color: var(--bg-secondary, #252541);
+  border-radius: 8px;
+}
+
+/* Tabs */
+.ps-tabs {
+  display: flex;
+  gap: 8px;
+  background-color: var(--bg-dark, #1a1a2e);
+  border-radius: 6px;
+  padding: 4px;
+  border: 1px solid var(--border-color, #444);
+}
+
+.ps-tab {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #999);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ps-tab:hover {
+  background-color: rgba(255, 191, 0, 0.08);
+  color: var(--text-primary, #fff);
+}
+
+.ps-tab-active {
+  background-color: var(--primary-accent, #FFBF00);
+  color: var(--bg-dark, #1a1a2e);
+  box-shadow: 0 2px 8px rgba(255, 191, 0, 0.2);
+}
+
+/* Sections */
+.ps-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ps-single-payer,
+.ps-multiple-payers {
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Labels */
+.ps-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.ps-label-icon {
+  width: 16px;
+  height: 16px;
+  opacity: 0.7;
+}
+
+.ps-required {
+  color: var(--status-error, #ff6b6b);
+  font-weight: 700;
+}
+
+/* Inputs */
+.ps-input {
+  padding: 10px 12px;
+  background-color: var(--bg-dark, #1a1a2e);
+  border: 1px solid var(--border-color, #444);
+  border-radius: 6px;
+  color: var(--text-primary, #fff);
+  font-size: 14px;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.ps-input:focus {
+  outline: none;
+  border-color: var(--primary-accent, #FFBF00);
+  box-shadow: 0 0 0 2px rgba(255, 191, 0, 0.1);
+}
+
+.ps-input::placeholder {
+  color: var(--text-tertiary, #666);
+  opacity: 0.5;
+}
+
+.ps-select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FFBF00' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 20px;
+  padding-right: 32px;
+  background-color: var(--bg-dark, #1a1a2e);
+  color: var(--text-primary, #fff);
+  border: 1px solid var(--border-color, #444);
+  border-radius: 6px;
+  padding-left: 10px;
+  font-size: 14px;
+}
+
+.ps-select option {
+  background-color: var(--bg-dark, #1a1a2e);
+  color: var(--text-primary, #fff);
+  padding: 8px;
+}
+
+/* Multiple Payers List */
+.ps-payers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.ps-payers-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ps-payers-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ps-payers-list::-webkit-scrollbar-thumb {
+  background: var(--border-color, #444);
+  border-radius: 3px;
+}
+
+.ps-payers-list::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary, #999);
+}
+
+/* Payer Row */
+.ps-payer-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background-color: rgba(255, 191, 0, 0.04);
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.ps-payer-row:hover {
+  background-color: rgba(255, 191, 0, 0.08);
+}
+
+.ps-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--primary-accent, #FFBF00);
+  flex-shrink: 0;
+}
+
+.ps-payer-name {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text-primary, #fff);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+/* Payer Input Group */
+.ps-payer-input-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.ps-payer-amount {
+  width: 80px;
+  padding: 6px 8px;
+  font-size: 13px;
+}
+
+.ps-payer-preview {
+  font-size: 12px;
+  color: var(--text-secondary, #999);
+  white-space: nowrap;
+  min-width: 60px;
+  text-align: right;
+}
+
+/* Error Message */
+.ps-error {
+  color: var(--status-error, #ff6b6b);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* Validation Hint */
+.ps-validation-hint {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.ps-validation-valid {
+  background-color: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  color: #4caf50;
+}
+
+.ps-validation-invalid {
+  background-color: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  color: #ff6b6b;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .ps-container {
+    gap: 12px;
+    padding: 10px;
+  }
+
+  .ps-payer-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .ps-payer-input-group {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .ps-payer-amount {
+    flex: 1;
+    width: auto;
+    min-width: 60px;
+  }
+
+  .ps-payer-preview {
+    flex: 0 0 auto;
+  }
+
+  .ps-tabs {
+    gap: 6px;
+  }
+
+  .ps-tab {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}

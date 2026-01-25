@@ -65,7 +65,13 @@ export const userService = {
         createdAt: Date.now(),
         lastLoginAt: Date.now(),
         // Initialize empty groups object
-        groups: {}
+        groups: {},
+        // Initialize overall summary for user
+        overallSummary: {
+          totalBalance: 0,
+          totalGroupCount: 0,
+          totalPendingAmount: 0
+        }
       }
 
       try {

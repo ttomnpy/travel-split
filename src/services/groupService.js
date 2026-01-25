@@ -3,6 +3,67 @@ import { rtdb } from '../firebase'
 import { debugLog, debugError } from '../utils/debug'
 
 /**
+ * Recalculate and update owner's overall summary based on all their groups
+ * This should be called whenever a group is created, deleted, or modified
+ * 
+ * @param {string} ownerId - The owner's user ID
+ * @returns {Promise<void>}
+ */
+export const updateOwnerOverallSummary = async (ownerId) => {
+  try {
+    if (!ownerId) {
+      throw new Error('Owner ID is required')
+    }
+
+    debugLog('Recalculating owner overall summary', { ownerId })
+
+    // Get all groups for the owner
+    const userGroupsRef = ref(rtdb, `users/${String(ownerId)}/groups`)
+    const userGroupsSnapshot = await get(userGroupsRef)
+
+    let totalGroupCount = 0
+    let totalBalance = 0
+    let totalPendingAmount = 0
+
+    if (userGroupsSnapshot.exists()) {
+      const userGroups = userGroupsSnapshot.val()
+      totalGroupCount = Object.keys(userGroups).length
+
+      // Aggregate summary data from all groups
+      const groupIds = Object.keys(userGroups)
+      for (const groupId of groupIds) {
+        const groupSummaryRef = ref(rtdb, `groups/${String(groupId)}/summary`)
+        const groupSummarySnapshot = await get(groupSummaryRef)
+        
+        if (groupSummarySnapshot.exists()) {
+          const groupSummary = groupSummarySnapshot.val()
+          totalBalance += groupSummary.totalBalance || 0
+          totalPendingAmount += groupSummary.totalPendingAmount || 0
+        }
+      }
+    }
+
+    // Update owner's overall summary
+    const ownerSummaryRef = ref(rtdb, `users/${String(ownerId)}/overallSummary`)
+    await set(ownerSummaryRef, {
+      totalBalance,
+      totalGroupCount,
+      totalPendingAmount
+    })
+
+    debugLog('Owner overall summary updated successfully', { 
+      ownerId,
+      totalGroupCount,
+      totalBalance,
+      totalPendingAmount
+    })
+  } catch (error) {
+    debugError('Error updating owner overall summary', error)
+    throw error
+  }
+}
+
+/**
  * Generate unique 8-character invite code with collision detection
  * Excludes ambiguous characters: O, I, l, 1, 0
  */
@@ -112,6 +173,9 @@ export const createGroup = async (userId, groupData) => {
     updates[`inviteCodes/${String(inviteCode)}`] = String(groupId)
 
     await update(ref(rtdb), updates)
+
+    // Update owner's overall summary after creating the group
+    await updateOwnerOverallSummary(userId)
 
     return {
       success: true,
@@ -659,6 +723,9 @@ export const deleteGroup = async (groupId, userId) => {
 
     await update(ref(rtdb), updates)
 
+    // Update owner's overall summary after deleting the group
+    await updateOwnerOverallSummary(userId)
+
     debugLog('Successfully deleted group', { groupId, userId })
 
     return {
@@ -729,6 +796,9 @@ export const removeMemberFromGroup = async (groupId, targetMemberId, ownerId) =>
 
     await update(ref(rtdb), updates)
 
+    // Update owner's overall summary after member removal
+    await updateOwnerOverallSummary(ownerId)
+
     debugLog('Successfully removed member from group', { groupId, targetMemberId, ownerId })
 
     return {
@@ -798,4 +868,12 @@ export const updateMemberNameAsOwner = async (groupId, targetMemberId, newName, 
     throw error
   }
 }
+
+/**
+ * Create a new expense record
+ * Handles different split methods and updates group summary
+ * 
+ * @deprecated Use expenseService.createExpense instead
+ */
+export { createExpense } from './expenseService'
 

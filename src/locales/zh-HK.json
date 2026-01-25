@@ -12,7 +12,8 @@
     "edit": "編輯",
     "back": "返回",
     "close": "關閉",
-    "saving": "保存中..."
+    "saving": "保存中...",
+    "optional": "（可選）"
   },
   "auth": {
     "email": "電子郵件",
@@ -261,5 +262,44 @@
     "removeMemberMessage": "你確定要從此群組中移除「{{memberName}}」嗎？他們將無法再訪問群組數據。",
     "removeError": "移除成員時出錯",
     "remove": "移除"
+  },
+  "addExpense": {
+    "title": "添加支出",
+    "amountPayer": "金額和付款人",
+    "totalAmount": "總金額",
+    "whoPaid": "誰付款",
+    "selectPayer": "選擇付款人...",
+    "singlePayer": "單一付款人",
+    "multiplePayers": "多個付款人",
+    "selectMultiplePayers": "選擇誰付款",
+    "payersTotal": "付款人總額",
+    "descriptionCategory": "描述和分類",
+    "description": "描述",
+    "descriptionPlaceholder": "例如：餐廳晚餐",
+    "category": "分類",
+    "date": "日期",
+    "location": "地點",
+    "locationPlaceholder": "例如：餐廳",
+    "splitMethod": "分攤方式",
+    "participants": "參與者",
+    "percentageTotal": "百分比總數",
+    "exactTotal": "總金額",
+    "addExpense": "添加支出"
+  },
+  "expense": {
+    "category": {
+      "food": "食物",
+      "transport": "交通",
+      "accommodation": "住宿",
+      "entertainment": "娛樂",
+      "shopping": "購物",
+      "other": "其他"
+    },
+    "split": {
+      "equal": "平均分攤",
+      "percentage": "百分比",
+      "shares": "份額",
+      "exact": "確切金額"
+    }
   }
 }

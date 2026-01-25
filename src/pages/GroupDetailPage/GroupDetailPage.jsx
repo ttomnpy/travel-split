@@ -7,7 +7,7 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { getDisplayName } from '../../utils/displayNameHelper'
 import { debugLog, debugError } from '../../utils/debug'
 import { getGroup } from '../../services/groupService'
-import { AddMemberModal, InviteModal, MembersList, LoadingSpinner, HeaderControls } from '../../components'
+import { AddMemberModal, InviteModal, MembersList, LoadingSpinner, HeaderControls, AddExpenseModal } from '../../components'
 import { BiUndo, BiPlus, BiMoney, BiX, BiLock, BiShare } from 'react-icons/bi';
 import './GroupDetailPage.css'
 
@@ -24,6 +24,7 @@ function GroupDetailPage({ onLogout }) {
   const [errorType, setErrorType] = useState('')
   const [showAddMemberModal, setShowAddMemberModal] = useState(false)
   const [showInviteModal, setShowInviteModal] = useState(false)
+  const [showAddExpenseModal, setShowAddExpenseModal] = useState(false)
 
   // Fetch group details
   useEffect(() => {
@@ -281,7 +282,7 @@ function GroupDetailPage({ onLogout }) {
         <section className="group-actions">
           <button
             className="action-btn primary"
-            onClick={() => navigate(`/groups/${groupId}/add-expense`)}
+            onClick={() => setShowAddExpenseModal(true)}
           >
             <BiPlus />
             {t('groupDetail.addExpense')}
@@ -308,6 +309,19 @@ function GroupDetailPage({ onLogout }) {
           isOpen={showInviteModal}
           onClose={() => setShowInviteModal(false)}
           groupId={groupId}
+        />
+
+        {/* Add Expense Modal */}
+        <AddExpenseModal
+          isOpen={showAddExpenseModal}
+          onClose={() => setShowAddExpenseModal(false)}
+          groupId={groupId}
+          groupMembers={members}
+          groupCurrency={group?.currency}
+          currentUserId={user?.uid}
+          onExpenseCreated={() => {
+            setShowAddExpenseModal(false)
+          }}
         />
 
         <div className="content-footer"></div>

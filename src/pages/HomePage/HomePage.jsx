@@ -33,6 +33,28 @@ function HomePage({ onLogout }) {
     let unsubscribeExpenses = []
     allExpensesRef.current = {}
 
+    // Listen to user's overall summary from Firebase
+    const unsubscribeOverallSummary = onValue(
+      ref(rtdb, `users/${user.uid}/overallSummary`),
+      (summarySnapshot) => {
+        if (summarySnapshot.exists()) {
+          const summary = summarySnapshot.val()
+          debugLog('Overall summary updated from Firebase:', summary)
+          setOverallSummary(summary)
+        } else {
+          // Initialize if not found
+          setOverallSummary({
+            totalGroupCount: 0,
+            totalBalance: 0,
+            totalPendingAmount: 0
+          })
+        }
+      },
+      (error) => {
+        debugError('Error listening to overall summary', error)
+      }
+    )
+
     // Fetch user groups
     const unsubscribeUserGroups = onValue(
       ref(rtdb, `users/${user.uid}/groups`),
@@ -40,7 +62,6 @@ function HomePage({ onLogout }) {
         try {
           if (!groupsSnapshot.exists()) {
             setUserGroups([])
-            setOverallSummary(null)
             setRecentExpenses([])
             setIsLoading(false)
             return
@@ -145,6 +166,7 @@ function HomePage({ onLogout }) {
 
     // Cleanup function
     return () => {
+      unsubscribeOverallSummary()
       unsubscribeUserGroups()
       unsubscribeExpenses.forEach(unsub => unsub())
     }

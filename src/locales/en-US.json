@@ -12,7 +12,8 @@
     "edit": "Edit",
     "back": "Back",
     "close": "Close",
-    "saving": "Saving..."
+    "saving": "Saving...",
+    "optional": "(optional)"
   },
   "auth": {
     "email": "Email",
@@ -261,5 +262,44 @@
     "removeMemberMessage": "Are you sure you want to remove \"{{memberName}}\" from this group? They will no longer have access to group data.",
     "removeError": "Error removing member",
     "remove": "Remove"
+  },
+  "addExpense": {
+    "title": "Add Expense",
+    "amountPayer": "Amount & Payer",
+    "totalAmount": "Total Amount",
+    "whoPaid": "Who Paid",
+    "selectPayer": "Select payer...",
+    "singlePayer": "Single Payer",
+    "multiplePayers": "Multiple Payers",
+    "selectMultiplePayers": "Select Who Paid",
+    "payersTotal": "Payers Total",
+    "descriptionCategory": "Description & Category",
+    "description": "Description",
+    "descriptionPlaceholder": "e.g., Dinner at restaurant",
+    "category": "Category",
+    "date": "Date",
+    "location": "Location",
+    "locationPlaceholder": "e.g., Restaurant",
+    "splitMethod": "Split Method",
+    "participants": "Participants",
+    "percentageTotal": "Percentage Total",
+    "exactTotal": "Total",
+    "addExpense": "Add Expense"
+  },
+  "expense": {
+    "category": {
+      "food": "Food",
+      "transport": "Transport",
+      "accommodation": "Accommodation",
+      "entertainment": "Entertainment",
+      "shopping": "Shopping",
+      "other": "Other"
+    },
+    "split": {
+      "equal": "Equal",
+      "percentage": "Percentage",
+      "shares": "Shares",
+      "exact": "Exact Amount"
+    }
   }
 }
