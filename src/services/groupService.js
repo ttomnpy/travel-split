@@ -9,10 +9,97 @@ import { debugLog, debugError } from '../utils/debug'
  * @param {string} ownerId - The owner's user ID
  * @returns {Promise<void>}
  */
+export const updateAllUserSummaries = async (groupId, expenseData) => {
+  try {
+    debugLog('Updating summaries for all users involved in expense', {
+      groupId,
+      amount: expenseData.amount,
+      payersCount: Object.keys(expenseData.payers || {}).length,
+      participantsCount: (expenseData.participants || []).length
+    })
+
+    // Get all unique user IDs (payers + participants)
+    const payerIds = Object.keys(expenseData.payers || {})
+    const participantIds = expenseData.participants || []
+    const allUserIds = new Set([...payerIds, ...participantIds])
+
+    // Batch update all user summaries
+    const updates = {}
+
+    for (const userId of allUserIds) {
+      try {
+        // Get current user summary
+        const userSummaryRef = ref(rtdb, `userSummaries/${String(userId)}`)
+        const userSummarySnapshot = await get(userSummaryRef)
+
+        let currentSummary = {
+          totalExpenseAmount: 0,
+          totalAmountOwed: 0,
+          totalAmountReceivable: 0,
+          lastUpdated: Date.now()
+        }
+
+        if (userSummarySnapshot.exists()) {
+          currentSummary = userSummarySnapshot.val()
+        }
+
+        // Calculate updated amounts for this user
+        let amountOwed = 0
+        let amountReceivable = 0
+
+        // If user is a payer
+        if (payerIds.includes(userId)) {
+          amountReceivable = expenseData.payers[userId]?.amount || 0
+        }
+
+        // If user is a participant
+        if (participantIds.includes(userId)) {
+          const participantShare = expenseData.splitDetails[userId] || 0
+          amountOwed = participantShare
+        }
+
+        // Update summary with new totals
+        updates[`userSummaries/${String(userId)}`] = {
+          totalExpenseAmount: (currentSummary.totalExpenseAmount || 0) + expenseData.amount,
+          totalAmountOwed: (currentSummary.totalAmountOwed || 0) + amountOwed,
+          totalAmountReceivable: (currentSummary.totalAmountReceivable || 0) + amountReceivable,
+          lastUpdated: Date.now()
+        }
+
+        debugLog('Calculated user summary update', {
+          userId,
+          amountOwed,
+          amountReceivable,
+          newTotal: {
+            totalExpenseAmount: updates[`userSummaries/${String(userId)}`].totalExpenseAmount,
+            totalAmountOwed: updates[`userSummaries/${String(userId)}`].totalAmountOwed,
+            totalAmountReceivable: updates[`userSummaries/${String(userId)}`].totalAmountReceivable
+          }
+        })
+      } catch (userError) {
+        debugError('Error calculating summary for user', { userId, error: userError.message })
+        // Continue with other users
+      }
+    }
+
+    // Apply all updates in one batch
+    if (Object.keys(updates).length > 0) {
+      await update(ref(rtdb), updates)
+      debugLog('All user summaries updated successfully', {
+        updatedUserCount: Object.keys(updates).length
+      })
+    }
+  } catch (error) {
+    debugError('Error updating all user summaries', error)
+    throw error
+  }
+}
+
 export const updateOwnerOverallSummary = async (ownerId) => {
   try {
-    if (!ownerId) {
-      throw new Error('Owner ID is required')
+    if (!ownerId || typeof ownerId !== 'string') {
+      debugLog('Invalid owner ID, skipping summary update', { ownerId, type: typeof ownerId })
+      return
     }
 
     debugLog('Recalculating owner overall summary', { ownerId })
@@ -43,12 +130,18 @@ export const updateOwnerOverallSummary = async (ownerId) => {
       }
     }
 
-    // Update owner's overall summary
-    const ownerSummaryRef = ref(rtdb, `users/${String(ownerId)}/overallSummary`)
-    await set(ownerSummaryRef, {
+    // Update owner's overall summary using batch write
+    const summaryData = {
       totalBalance,
       totalGroupCount,
-      totalPendingAmount
+      totalPendingAmount,
+      lastUpdated: Date.now()
+    }
+
+    debugLog('Updating ownerSummaries with data', { ownerId, summaryData })
+
+    await update(ref(rtdb), {
+      [`userSummaries/${String(ownerId)}`]: summaryData
     })
 
     debugLog('Owner overall summary updated successfully', { 

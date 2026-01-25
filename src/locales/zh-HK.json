@@ -107,6 +107,7 @@
     "currency": "貨幣",
     "aboutThisTrip": "關於此旅程",
     "members": "成員",
+    "expenses": "開支",
     "joined": "已加入",
     "pendingInvite": "待邀請",
     "youOwner": "你 (擁有人)",
@@ -123,7 +124,15 @@
     "notMemberOfGroup": "你不是此旅程的成員，無法查看詳情。",
     "suggestion": "需要訪問權限？",
     "suggestionText": "請向旅程擁有人要求邀請你成為成員，以查看此旅程。",
-    "backToHome": "返回主頁"
+    "backToHome": "返回主頁",
+    "noExpenses": "還未有開支",
+    "paidBy": "由以下人士支付",
+    "involvedMembers": "涉及成員",
+    "location": "地點",
+    "deleteExpenseError": "無法刪除開支。請重試。",
+    "deleteExpenseTitle": "刪除開支？",
+    "deleteExpenseMessage": "你確定要刪除此開支嗎？此操作無法撤銷。",
+    "deleteButton": "刪除"
   },
   "groupForm": {
     "tripName": "旅程名稱",

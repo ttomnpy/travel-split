@@ -1,7 +1,7 @@
 import { ref, push, update, get } from 'firebase/database'
 import { rtdb } from '../firebase'
 import { debugLog, debugError } from '../utils/debug'
-import { updateOwnerOverallSummary } from './groupService'
+import { updateAllUserSummaries } from './groupService'
 
 /**
  * Create a new expense record
@@ -165,10 +165,18 @@ export const createExpense = async (groupId, expenseData) => {
 
     await update(ref(rtdb), updates)
 
-    // Update owner's overall summary
-    const ownerInfo = group.owner || group.createdBy
-    if (ownerInfo) {
-      await updateOwnerOverallSummary(ownerInfo)
+    // Update summaries for ALL users involved in this expense (payers + participants)
+    try {
+      await updateAllUserSummaries(groupId, {
+        amount: expenseData.amount,
+        payers: expenseData.payers,
+        participants: expenseData.participants,
+        splitDetails: details
+      })
+      debugLog('All user summaries updated for expense', { groupId, expenseId })
+    } catch (summaryError) {
+      debugError('Failed to update user summaries', summaryError)
+      // Don't throw - expense was already created successfully
     }
 
     debugLog('Expense created successfully', { groupId, expenseId, amount: expenseData.amount })
@@ -179,6 +187,146 @@ export const createExpense = async (groupId, expenseData) => {
     }
   } catch (error) {
     debugError('Error creating expense', error)
+    throw error
+  }
+}
+
+/**
+ * Delete an expense record and revert user summaries
+ * 
+ * @param {string} groupId - The group ID
+ * @param {string} expenseId - The expense ID to delete
+ * @param {Object} expense - The expense object with payers, participants, and amount
+ * @returns {Promise<{success: boolean}>}
+ */
+export const deleteExpense = async (groupId, expenseId, expense) => {
+  try {
+    if (!groupId || !expenseId || !expense) {
+      throw new Error('Group ID, expense ID, and expense data are required')
+    }
+
+    debugLog('Deleting expense', { groupId, expenseId, amount: expense.amount })
+
+    // Get current group data
+    const groupRef = ref(rtdb, `groups/${String(groupId)}`)
+    const groupSnapshot = await get(groupRef)
+
+    if (!groupSnapshot.exists()) {
+      throw new Error('Group not found')
+    }
+
+    const group = groupSnapshot.val()
+    const currentSummary = group.summary || {}
+
+    // Revert balances
+    const updatedBalances = { ...currentSummary.balances }
+
+    // Subtract payer amounts
+    Object.entries(expense.payers || {}).forEach(([payerId, payerInfo]) => {
+      updatedBalances[payerId] = (updatedBalances[payerId] || 0) - payerInfo.amount
+    })
+
+    // Add participant amounts back
+    Object.entries(expense.splitDetails || {}).forEach(([participantId, amount]) => {
+      updatedBalances[participantId] = (updatedBalances[participantId] || 0) + amount
+    })
+
+    // Calculate total balance
+    let totalBalance = 0
+    Object.values(updatedBalances).forEach((balance) => {
+      if (balance > 0) totalBalance += balance
+    })
+
+    // Batch delete and update
+    const updates = {}
+    updates[`groups/${String(groupId)}/expenses/${String(expenseId)}`] = null
+    updates[`groups/${String(groupId)}/summary/totalExpenses`] = Math.max(0, (currentSummary.totalExpenses || 0) - expense.amount)
+    updates[`groups/${String(groupId)}/summary/expenseCount`] = Math.max(0, (currentSummary.expenseCount || 0) - 1)
+    updates[`groups/${String(groupId)}/summary/balances`] = updatedBalances
+    updates[`groups/${String(groupId)}/summary/totalBalance`] = totalBalance
+
+    await update(ref(rtdb), updates)
+
+    // Revert summaries for all users involved
+    try {
+      await revertUserSummariesForExpense(groupId, {
+        amount: expense.amount,
+        payers: expense.payers,
+        participants: expense.participants,
+        splitDetails: expense.splitDetails
+      })
+      debugLog('User summaries reverted for deleted expense', { groupId, expenseId })
+    } catch (summaryError) {
+      debugError('Failed to revert user summaries', summaryError)
+      // Don't throw - expense was already deleted successfully
+    }
+
+    debugLog('Expense deleted successfully', { groupId, expenseId })
+
+    return {
+      success: true
+    }
+  } catch (error) {
+    debugError('Error deleting expense', error)
+    throw error
+  }
+}
+
+/**
+ * Revert user summaries after expense deletion
+ */
+const revertUserSummariesForExpense = async (groupId, expenseData) => {
+  try {
+    const payerIds = Object.keys(expenseData.payers || {})
+    const participantIds = expenseData.participants || []
+    const allUserIds = new Set([...payerIds, ...participantIds])
+
+    const updates = {}
+
+    for (const userId of allUserIds) {
+      try {
+        const userSummaryRef = ref(rtdb, `userSummaries/${String(userId)}`)
+        const userSummarySnapshot = await get(userSummaryRef)
+
+        if (!userSummarySnapshot.exists()) {
+          continue
+        }
+
+        const currentSummary = userSummarySnapshot.val()
+        let amountOwed = 0
+        let amountReceivable = 0
+
+        if (payerIds.includes(userId)) {
+          amountReceivable = expenseData.payers[userId]?.amount || 0
+        }
+
+        if (participantIds.includes(userId)) {
+          amountOwed = expenseData.splitDetails[userId] || 0
+        }
+
+        updates[`userSummaries/${String(userId)}`] = {
+          totalExpenseAmount: Math.max(0, (currentSummary.totalExpenseAmount || 0) - expenseData.amount),
+          totalAmountOwed: Math.max(0, (currentSummary.totalAmountOwed || 0) - amountOwed),
+          totalAmountReceivable: Math.max(0, (currentSummary.totalAmountReceivable || 0) - amountReceivable),
+          lastUpdated: Date.now()
+        }
+
+        debugLog('Calculated user summary revert', {
+          userId,
+          amountOwed,
+          amountReceivable
+        })
+      } catch (userError) {
+        debugError('Error reverting summary for user', { userId, error: userError.message })
+      }
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await update(ref(rtdb), updates)
+      debugLog('All user summaries reverted successfully')
+    }
+  } catch (error) {
+    debugError('Error reverting user summaries', error)
     throw error
   }
 }

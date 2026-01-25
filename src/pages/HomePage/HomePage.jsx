@@ -33,9 +33,9 @@ function HomePage({ onLogout }) {
     let unsubscribeExpenses = []
     allExpensesRef.current = {}
 
-    // Listen to user's overall summary from Firebase
+    // Listen to user's account-wide summary from Firebase
     const unsubscribeOverallSummary = onValue(
-      ref(rtdb, `users/${user.uid}/overallSummary`),
+      ref(rtdb, `userSummaries/${user.uid}`),
       (summarySnapshot) => {
         if (summarySnapshot.exists()) {
           const summary = summarySnapshot.val()

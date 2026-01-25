@@ -66,12 +66,7 @@ export const userService = {
         lastLoginAt: Date.now(),
         // Initialize empty groups object
         groups: {},
-        // Initialize overall summary for user
-        overallSummary: {
-          totalBalance: 0,
-          totalGroupCount: 0,
-          totalPendingAmount: 0
-        }
+        // Note: overallSummary is stored separately in ownerSummaries/{uid} path
       }
 
       try {

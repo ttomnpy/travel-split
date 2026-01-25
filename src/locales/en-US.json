@@ -107,6 +107,7 @@
     "currency": "Currency",
     "aboutThisTrip": "About This Trip",
     "members": "Members",
+    "expenses": "Expenses",
     "joined": "Joined",
     "pendingInvite": "Pending Invite",
     "youOwner": "You (Owner)",
@@ -123,7 +124,15 @@
     "notMemberOfGroup": "You are not a member of this trip and cannot view the details.",
     "suggestion": "Need access?",
     "suggestionText": "Ask the trip owner to invite you as a member to see this trip.",
-    "backToHome": "Back to Home"
+    "backToHome": "Back to Home",
+    "noExpenses": "No expenses yet",
+    "paidBy": "Paid by",
+    "involvedMembers": "Involved",
+    "location": "Location",
+    "deleteExpenseError": "Failed to delete expense. Please try again.",
+    "deleteExpenseTitle": "Delete Expense?",
+    "deleteExpenseMessage": "Are you sure you want to delete this expense? This action cannot be undone.",
+    "deleteButton": "Delete"
   },
   "groupForm": {
     "tripName": "Trip Name",
