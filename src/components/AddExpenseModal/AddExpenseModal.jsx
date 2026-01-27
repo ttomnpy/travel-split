@@ -214,7 +214,7 @@ const AddExpenseModal = ({ isOpen, onClose, groupId, groupMembers, groupCurrency
         currency: formData.currency,
         date: formData.date,
         location: formData.location,
-      })
+      }, currentUserId)
 
       setSubmitSuccess(true)
       setTimeout(() => {

@@ -108,6 +108,7 @@
     "aboutThisTrip": "About This Trip",
     "members": "Members",
     "expenses": "Expenses",
+    "settlement": "Settlement",
     "joined": "Joined",
     "pendingInvite": "Pending Invite",
     "youOwner": "You (Owner)",
@@ -156,7 +157,14 @@
     "addMember": "Add Member",
     "noMembers": "No members yet",
     "youOwner": "You (Owner)",
-    "membersTitle": "Members ({{count}})"
+    "you": "You",
+    "membersTitle": "Members ({{count}})",
+    "admin": "Admin",
+    "makeAdminTitle": "Make Admin?",
+    "makeAdminMessage": "Promote {{memberName}} to admin? They will be able to delete expenses and manage group settings.",
+    "removeAdmin": "Remove Admin",
+    "removeAdminTitle": "Remove Admin?",
+    "removeAdminMessage": "Remove {{memberName}} as admin? They will still be a group member."
   },
   "addMember": {
     "title": "Add Member",
@@ -236,6 +244,7 @@
     "title": "Group Settings",
     "groupSettings": "Group Settings",
     "ownerOnly": "Only the group owner can modify these settings",
+    "adminCanEdit": "As an admin, you can modify these settings",
     "groupName": "Group Name",
     "enterGroupName": "Enter group name",
     "currency": "Currency",
@@ -310,5 +319,14 @@
       "shares": "Shares",
       "exact": "Exact Amount"
     }
+  },
+  "settlement": {
+    "settleUpTitle": "Settlement Summary",
+    "settleUpDescription": "Here's who needs to pay whom to settle all expenses",
+    "pays": "Pays",
+    "receives": "Receives",
+    "you": "You",
+    "allSettled": "All Settled!",
+    "noOutstandingDebts": "No outstanding debts. Everyone is settled up!"
   }
 }

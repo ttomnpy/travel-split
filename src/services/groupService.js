@@ -963,6 +963,87 @@ export const updateMemberNameAsOwner = async (groupId, targetMemberId, newName, 
 }
 
 /**
+ * Update member role (set/unset admin)
+ * Only owner can set members as admins
+ * 
+ * @param {string} groupId - Group ID
+ * @param {string} targetMemberId - Member to update
+ * @param {boolean} isAdmin - Whether to make them admin
+ * @param {string} ownerId - Current user ID (must be owner)
+ */
+export const updateMemberRole = async (groupId, targetMemberId, isAdmin, ownerId) => {
+  try {
+    if (!groupId || !targetMemberId || !ownerId) {
+      throw new Error('Group ID, member ID, and owner ID are required')
+    }
+
+    debugLog('Attempting to update member role', { groupId, targetMemberId, isAdmin, ownerId })
+
+    // Get group data to verify ownership
+    const groupRef = ref(rtdb, `groups/${groupId}`)
+    const groupSnapshot = await get(groupRef)
+
+    if (!groupSnapshot.exists()) {
+      throw new Error('Group not found')
+    }
+
+    const group = groupSnapshot.val()
+
+    // Verify user is owner
+    if (group.owner !== ownerId && group.createdBy !== ownerId) {
+      throw new Error('Only group owner can update member roles')
+    }
+
+    // Cannot modify owner's role
+    if (targetMemberId === group.owner || targetMemberId === group.createdBy) {
+      throw new Error('Cannot modify owner\'s role')
+    }
+
+    // Check if member exists in the group
+    if (!group.members || !group.members[targetMemberId]) {
+      throw new Error('Member not found in this group')
+    }
+
+    // Get member info
+    const memberInfo = group.members[targetMemberId]
+
+    // Cannot promote dummy members to admin
+    if (isAdmin && memberInfo.type === 'dummy') {
+      throw new Error('Cannot promote dummy members to admin. Only real members can become admins.')
+    }
+
+    // Update member's role
+    const updates = {}
+    
+    if (isAdmin) {
+      updates[`groups/${String(groupId)}/members/${String(targetMemberId)}/role`] = 'admin'
+    } else {
+      updates[`groups/${String(groupId)}/members/${String(targetMemberId)}/role`] = 'member'
+    }
+
+    await update(ref(rtdb), updates)
+
+    debugLog('Successfully updated member role', { 
+      groupId, 
+      targetMemberId, 
+      isAdmin,
+      ownerId 
+    })
+
+    return {
+      success: true,
+      groupId,
+      memberId: targetMemberId,
+      isAdmin,
+      memberName: memberInfo.name
+    }
+  } catch (error) {
+    debugError('Error updating member role', error)
+    throw error
+  }
+}
+
+/**
  * Create a new expense record
  * Handles different split methods and updates group summary
  * 

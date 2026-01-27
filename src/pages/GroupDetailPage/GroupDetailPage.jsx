@@ -7,8 +7,8 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { getDisplayName } from '../../utils/displayNameHelper'
 import { debugLog, debugError } from '../../utils/debug'
 import { getGroup } from '../../services/groupService'
-import { deleteExpense } from '../../services/expenseService'
-import { AddMemberModal, InviteModal, MembersList, LoadingSpinner, HeaderControls, AddExpenseModal, ConfirmationModal } from '../../components'
+import { deleteExpense, calculateSettlements } from '../../services/expenseService'
+import { AddMemberModal, InviteModal, MembersList, LoadingSpinner, HeaderControls, AddExpenseModal, ConfirmationModal, SettlementView } from '../../components'
 import { BiUndo, BiPlus, BiMoney, BiX, BiLock, BiShare, BiReceipt, BiChevronDown, BiTrash } from 'react-icons/bi';
 import './GroupDetailPage.css'
 
@@ -81,8 +81,18 @@ function GroupDetailPage({ onLogout }) {
   const isOwner = group && group.owner === user?.uid
   const isGroupMember = group && members && (user?.uid in members)
   const hasPermission = isOwner || isGroupMember
+  const userRole = group && members && members[user?.uid]?.role
+  const isAdmin = userRole === 'admin'
   const expenseCount = group?.expenses ? Object.keys(group.expenses).length : 0
   const totalAmount = group?.summary?.totalExpenses || 0
+
+  // Check if current user can delete an expense
+  const canDeleteExpense = (expense) => {
+    if (isOwner) return true
+    if (expense.createdBy === user?.uid) return true
+    if (isAdmin) return true
+    return false
+  }
 
   const handleAddMember = (dummyId, member) => {
     // Member is automatically added via Firebase listener
@@ -322,7 +332,7 @@ function GroupDetailPage({ onLogout }) {
             <BiPlus />
             {t('groupDetail.addExpense')}
           </button>
-          {isOwner && (
+          {(isOwner || isAdmin) && (
             <button
               className="action-btn invite"
               onClick={() => setShowInviteModal(true)}
@@ -362,6 +372,13 @@ function GroupDetailPage({ onLogout }) {
             >
               <BiReceipt className="tab-icon" />
               <span>{t('groupDetail.expenses') || 'Expenses'}</span>
+            </button>
+            <button 
+              className={`tab-button ${activeTab === 'settlement' ? 'active' : ''}`}
+              onClick={() => setActiveTab('settlement')}
+            >
+              <BiMoney className="tab-icon" />
+              <span>{t('groupDetail.settlement') || 'Settlement'}</span>
             </button>
           </div>
 
@@ -424,7 +441,12 @@ function GroupDetailPage({ onLogout }) {
                               )}
                               
                               <div className="expense-info">
-                                <div className="expense-title-compact">{expense.description}</div>
+                                <div className="expense-title-row">
+                                  <div className="expense-title-compact">{expense.description}</div>
+                                  {payerIds.includes(user?.uid) && (
+                                    <span className="expense-you-badge">{t('member.you') || 'You'}</span>
+                                  )}
+                                </div>
                                 <div className="overview-meta">
                                   <span className="meta-date">{expenseDate}</span>
                                   <span className="meta-category">{t(`expense.category.${expense.category}`) || expense.category}</span>
@@ -464,7 +486,12 @@ function GroupDetailPage({ onLogout }) {
                                   <div className="details-pills">
                                     {payerIds.map((payerId) => (
                                       <div key={payerId} className="detail-pill payer">
-                                        <span className="pill-name">{expense.payers[payerId]?.name}</span>
+                                        <div className="pill-name-row">
+                                          <span className="pill-name">{expense.payers[payerId]?.name}</span>
+                                          {payerId === user?.uid && (
+                                            <span className="pill-you-badge">{t('member.you') || 'You'}</span>
+                                          )}
+                                        </div>
                                         <span className="pill-amount">{formatCurrency(expense.payers[payerId]?.amount)}</span>
                                       </div>
                                     ))}
@@ -491,7 +518,7 @@ function GroupDetailPage({ onLogout }) {
                               </div>
 
                               {/* Delete Button */}
-                              {isOwner && (
+                              {canDeleteExpense(expense) && (
                                 <div className="expense-actions">
                                   <button
                                     className="btn-delete-expense"
@@ -517,6 +544,18 @@ function GroupDetailPage({ onLogout }) {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Settlement Tab */}
+          {activeTab === 'settlement' && (
+            <div className="tab-content settlement-tab">
+              <SettlementView
+                settlements={calculateSettlements(group)}
+                formatCurrency={formatCurrency}
+                currentUserId={user?.uid}
+                t={t}
+              />
             </div>
           )}
         </section>

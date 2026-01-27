@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { BiTrash, BiEdit, BiCheck, BiX } from 'react-icons/bi'
+import { BiTrash, BiEdit, BiCheck, BiX, BiStar } from 'react-icons/bi'
 import { useTranslation } from '../../hooks/useTranslation'
 import { debugLog, debugError } from '../../utils/debug'
-import { removeMemberFromGroup, updateMemberNameAsOwner } from '../../services/groupService'
+import { removeMemberFromGroup, updateMemberNameAsOwner, updateMemberRole } from '../../services/groupService'
 import ConfirmationModal from '../ConfirmationModal/ConfirmationModal'
 import './MemberManagement.css'
 
@@ -13,8 +13,10 @@ function MemberManagement({ groupId, members, currentUserId, onMembersChange }) 
   const [isSaving, setIsSaving] = useState(false)
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
+    type: null, // 'remove' or 'moderator'
     targetMemberId: null,
     targetMemberName: '',
+    targetAction: null, // 'remove' or 'make_moderator' or 'remove_moderator'
     isLoading: false
   })
   const [error, setError] = useState('')
@@ -75,8 +77,22 @@ function MemberManagement({ groupId, members, currentUserId, onMembersChange }) 
   const openRemoveConfirm = (memberId, memberName) => {
     setConfirmModal({
       isOpen: true,
+      type: 'remove',
       targetMemberId: memberId,
       targetMemberName: memberName,
+      targetAction: 'remove',
+      isLoading: false
+    })
+    setError('')
+  }
+
+  const openAdminConfirm = (memberId, memberName, isCurrentlyAdmin) => {
+    setConfirmModal({
+      isOpen: true,
+      type: 'admin',
+      targetMemberId: memberId,
+      targetMemberName: memberName,
+      targetAction: isCurrentlyAdmin ? 'remove_admin' : 'make_admin',
       isLoading: false
     })
     setError('')
@@ -88,7 +104,7 @@ function MemberManagement({ groupId, members, currentUserId, onMembersChange }) 
     try {
       await removeMemberFromGroup(groupId, confirmModal.targetMemberId, currentUserId)
       debugLog('Member removed from group', { memberId: confirmModal.targetMemberId })
-      setConfirmModal({ isOpen: false, targetMemberId: null, targetMemberName: '', isLoading: false })
+      setConfirmModal({ isOpen: false, type: null, targetMemberId: null, targetMemberName: '', targetAction: null, isLoading: false })
       onMembersChange?.()
     } catch (err) {
       debugError('Error removing member', err)
@@ -97,8 +113,27 @@ function MemberManagement({ groupId, members, currentUserId, onMembersChange }) 
     }
   }
 
-  const handleCancelRemove = () => {
-    setConfirmModal({ isOpen: false, targetMemberId: null, targetMemberName: '', isLoading: false })
+  const handleConfirmAdminChange = async () => {
+    setConfirmModal((prev) => ({ ...prev, isLoading: true }))
+
+    try {
+      const isAdmin = confirmModal.targetAction === 'make_admin'
+      await updateMemberRole(groupId, confirmModal.targetMemberId, isAdmin, currentUserId)
+      debugLog('Member role updated', { 
+        memberId: confirmModal.targetMemberId, 
+        isAdmin 
+      })
+      setConfirmModal({ isOpen: false, type: null, targetMemberId: null, targetMemberName: '', targetAction: null, isLoading: false })
+      onMembersChange?.()
+    } catch (err) {
+      debugError('Error updating member role', err)
+      setError(err.message || t('groupSettings.updateError') || 'Error updating member role')
+      setConfirmModal((prev) => ({ ...prev, isLoading: false }))
+    }
+  }
+
+  const handleCancelConfirm = () => {
+    setConfirmModal({ isOpen: false, type: null, targetMemberId: null, targetMemberName: '', targetAction: null, isLoading: false })
     setError('')
   }
 
@@ -179,15 +214,28 @@ function MemberManagement({ groupId, members, currentUserId, onMembersChange }) 
                   </>
                 ) : (
                   <>
-                    <button
-                      className="member-action-btn member-action-btn-edit"
-                      onClick={() => startEdit(member.id, member.name)}
-                      title={t('common.edit') || 'Edit'}
-                    >
-                      <BiEdit />
-                    </button>
-                    <button
-                      className="member-action-btn member-action-btn-remove"
+                      {member.type === 'real' && (
+                        <button
+                          className="member-action-btn member-action-btn-admin"
+                          onClick={() => openAdminConfirm(member.id, member.name, member.role === 'admin')}
+                          title={member.role === 'admin' ? (t('member.removeAdmin') || 'Remove Admin') : (t('member.admin') || 'Make Admin')}
+                          style={{
+                            color: member.role === 'admin' ? '#FFBF00' : 'inherit',
+                            opacity: member.role === 'admin' ? 1 : 0.5
+                          }}
+                        >
+                          <BiStar />
+                        </button>
+                      )}
+                      <button
+                        className="member-action-btn member-action-btn-edit"
+                        onClick={() => startEdit(member.id, member.name)}
+                        title={t('common.edit') || 'Edit'}
+                      >
+                        <BiEdit />
+                      </button>
+                      <button
+                        className="member-action-btn member-action-btn-remove"
                       onClick={() => openRemoveConfirm(member.id, member.name)}
                       title={t('common.remove') || 'Remove'}
                     >
@@ -203,19 +251,37 @@ function MemberManagement({ groupId, members, currentUserId, onMembersChange }) 
 
       <ConfirmationModal
         isOpen={confirmModal.isOpen}
-        title={t('groupSettings.removeMemberTitle') || 'Remove Member?'}
+        title={
+          confirmModal.targetAction === 'make_admin' 
+            ? (t('member.makeAdminTitle') || 'Make Admin?')
+            : confirmModal.targetAction === 'remove_admin'
+            ? (t('member.removeAdminTitle') || 'Remove Admin?')
+            : (t('groupSettings.removeMemberTitle') || 'Remove Member?')
+        }
         message={
-          confirmModal.targetMemberName
+          confirmModal.targetAction === 'make_admin'
+            ? (t('member.makeAdminMessage', { memberName: confirmModal.targetMemberName }) ||
+              `Promote ${confirmModal.targetMemberName} to admin? They will be able to delete expenses and manage group settings.`)
+            : confirmModal.targetAction === 'remove_admin'
+            ? (t('member.removeAdminMessage', { memberName: confirmModal.targetMemberName }) ||
+              `Remove ${confirmModal.targetMemberName} as admin? They will still be a group member.`)
+            : confirmModal.targetMemberName
             ? (t('groupSettings.removeMemberMessage', { memberName: confirmModal.targetMemberName }) ||
               `Are you sure you want to remove "${confirmModal.targetMemberName}" from this group? They will no longer have access to group data.`)
             : 'Are you sure you want to remove this member from the group?'
         }
-        confirmText={t('groupSettings.remove') || 'Remove'}
+        confirmText={
+          confirmModal.targetAction === 'remove_admin'
+            ? (t('member.removeAdmin') || 'Remove')
+            : confirmModal.targetAction === 'remove'
+            ? (t('groupSettings.remove') || 'Remove')
+            : (t('member.admin') || 'Make Admin')
+        }
         cancelText={t('common.cancel') || 'Cancel'}
-        isDangerous={true}
+        isDangerous={confirmModal.targetAction === 'remove'}
         isLoading={confirmModal.isLoading}
-        onConfirm={handleConfirmRemove}
-        onCancel={handleCancelRemove}
+        onConfirm={confirmModal.targetAction === 'remove' ? handleConfirmRemove : handleConfirmAdminChange}
+        onCancel={handleCancelConfirm}
       />
     </>
   )

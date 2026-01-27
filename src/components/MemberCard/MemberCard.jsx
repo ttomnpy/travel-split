@@ -1,4 +1,4 @@
-import { BiCheck, BiHourglass, BiCrown } from 'react-icons/bi'
+import { BiCheck, BiHourglass, BiCrown, BiStar } from 'react-icons/bi'
 import { useState, useRef, useEffect } from 'react'
 import './MemberCard.css'
 
@@ -32,6 +32,15 @@ function MemberCard({ member, memberId, isOwner, isCurrentUser }) {
         type: 'owner',
         icon: BiCrown,
         label: 'Owner'
+      })
+    }
+
+    // Admin indicator
+    if (!isOwner && member.role === 'admin') {
+      indicators.push({
+        type: 'admin',
+        icon: BiStar,
+        label: 'Admin'
       })
     }
 

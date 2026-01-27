@@ -40,8 +40,11 @@ function GroupSettingsPage({ onLogout }) {
     memberName: ''
   })
 
-  // Check if current user is owner
+  // Check if current user is owner or admin
   const isOwner = group?.createdBy === user?.uid
+  const userRole = memberData?.role
+  const isAdmin = userRole === 'admin'
+  const canManage = isOwner || isAdmin
 
   // Fetch group and member data
   useEffect(() => {
@@ -91,7 +94,7 @@ function GroupSettingsPage({ onLogout }) {
   }, [groupId, user?.uid])
 
   const handleSaveGroupSettings = async () => {
-    if (!isOwner) return
+    if (!canManage) return
 
     setIsSavingSettings(true)
     setError('')
@@ -275,12 +278,12 @@ function GroupSettingsPage({ onLogout }) {
           </div>
         )}
 
-        {/* Group Settings (Owner Only) */}
-        {isOwner && (
+        {/* Group Settings (Owner and Admin) */}
+        {canManage && (
           <section className="settings-section group-settings">
             <h2 className="section-title">{t('groupSettings.groupSettings') || 'Group Settings'}</h2>
             <p className="section-subtitle">
-              {t('groupSettings.ownerOnly') || 'Only the group owner can modify these settings'}
+              {isOwner ? (t('groupSettings.ownerOnly') || 'Only the group owner can modify these settings') : (t('groupSettings.adminCanEdit') || 'As an admin, you can modify these settings')}
             </p>
 
             <div className="form-group">
@@ -337,8 +340,8 @@ function GroupSettingsPage({ onLogout }) {
           </section>
         )}
 
-        {/* Member Management (Owner Only) */}
-        {isOwner && (
+        {/* Member Management (Owner and Admin) */}
+        {canManage && (
           <MemberManagement
             groupId={groupId}
             members={group?.members}

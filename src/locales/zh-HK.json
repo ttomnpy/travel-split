@@ -108,6 +108,7 @@
     "aboutThisTrip": "關於此旅程",
     "members": "成員",
     "expenses": "開支",
+    "settlement": "分賬",
     "joined": "已加入",
     "pendingInvite": "待邀請",
     "youOwner": "你 (擁有人)",
@@ -156,7 +157,14 @@
     "addMember": "新增成員",
     "noMembers": "還未有成員",
     "youOwner": "你 (擁有人)",
-    "membersTitle": "成員 ({{count}})"
+    "you": "你",
+    "membersTitle": "成員 ({{count}})",
+    "admin": "管理員",
+    "makeAdminTitle": "設為管理員？",
+    "makeAdminMessage": "提升 {{memberName}} 為管理員？他們將能夠刪除開支並管理群組設置。",
+    "removeAdmin": "移除管理員",
+    "removeAdminTitle": "移除管理員？",
+    "removeAdminMessage": "移除 {{memberName}} 的管理員身份？他們仍將是群組成員。"
   },
   "addMember": {
     "title": "新增成員",
@@ -236,6 +244,7 @@
     "title": "群組設置",
     "groupSettings": "群組設置",
     "ownerOnly": "只有群組擁有者可以修改這些設置",
+    "adminCanEdit": "作為管理員，你可以修改這些設置",
     "groupName": "群組名稱",
     "enterGroupName": "輸入群組名稱",
     "currency": "貨幣",
@@ -310,5 +319,14 @@
       "shares": "份額",
       "exact": "確切金額"
     }
+  },
+  "settlement": {
+    "settleUpTitle": "分賬總結",
+    "settleUpDescription": "以下是誰需要支付給誰以結清所有開支",
+    "pays": "支付",
+    "receives": "收取",
+    "you": "你",
+    "allSettled": "已全部結清！",
+    "noOutstandingDebts": "沒有未結清的債務。每個人都已結清！"
   }
 }

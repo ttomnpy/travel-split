@@ -130,6 +130,16 @@
   background-color: rgba(255, 191, 0, 0.25);
 }
 
+/* Admin indicator - Star icon */
+.status-indicator.status-admin {
+  background-color: rgba(255, 191, 0, 0.15);
+  color: var(--primary-accent);
+}
+
+.status-indicator.status-admin:hover {
+  background-color: rgba(255, 191, 0, 0.25);
+}
+
 /* Joined indicator - Check icon */
 .status-indicator.status-joined {
   background-color: rgba(76, 175, 80, 0.15);

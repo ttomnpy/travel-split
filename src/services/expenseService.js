@@ -19,9 +19,10 @@ import { updateAllUserSummaries } from './groupService'
  * @param {string} expenseData.currency - Currency code
  * @param {string} expenseData.date - Date (ISO string or timestamp)
  * @param {string} expenseData.location - Location
+ * @param {string} currentUserId - User ID who created the expense
  * @returns {Promise<{success: boolean, expenseId: string}>}
  */
-export const createExpense = async (groupId, expenseData) => {
+export const createExpense = async (groupId, expenseData, currentUserId) => {
   try {
     // Validate payers
     const hasPayers = expenseData.payers && Object.keys(expenseData.payers).length > 0
@@ -48,7 +49,7 @@ export const createExpense = async (groupId, expenseData) => {
     let totalAmount = 0
 
     if (expenseData.splitMethod === 'equal') {
-      const shareAmount = expenseData.amount / expenseData.participants.length
+      const shareAmount = Math.round((expenseData.amount / expenseData.participants.length) * 100) / 100
       expenseData.participants.forEach((participantId) => {
         details[participantId] = shareAmount
         totalAmount += shareAmount
@@ -56,7 +57,7 @@ export const createExpense = async (groupId, expenseData) => {
     } else if (expenseData.splitMethod === 'percentage') {
       expenseData.participants.forEach((participantId) => {
         const percentage = expenseData.splitDetails[participantId]?.percentage || 0
-        const amount = (expenseData.amount * percentage) / 100
+        const amount = Math.round((expenseData.amount * percentage) / 100 * 100) / 100
         details[participantId] = amount
         splitMeta[participantId] = { percentage }
         totalAmount += amount
@@ -68,14 +69,14 @@ export const createExpense = async (groupId, expenseData) => {
       })
       expenseData.participants.forEach((participantId) => {
         const shares = expenseData.splitDetails[participantId]?.shares || 1
-        const amount = (expenseData.amount * shares) / totalShares
+        const amount = Math.round((expenseData.amount * shares) / totalShares * 100) / 100
         details[participantId] = amount
         splitMeta[participantId] = { shares }
         totalAmount += amount
       })
     } else if (expenseData.splitMethod === 'exact') {
       expenseData.participants.forEach((participantId) => {
-        const amount = expenseData.splitDetails[participantId]?.amount || 0
+        const amount = Math.round((expenseData.splitDetails[participantId]?.amount || 0) * 100) / 100
         details[participantId] = amount
         totalAmount += amount
       })
@@ -109,6 +110,7 @@ export const createExpense = async (groupId, expenseData) => {
       splitDetails: details,
       date: dateTimestamp,
       createdAt: now,
+      createdBy: String(currentUserId)
     }
 
     // Add optional fields
@@ -139,13 +141,17 @@ export const createExpense = async (groupId, expenseData) => {
     const updatedBalances = { ...currentSummary.balances }
 
     // Add amounts to each payer's balance (they gave money)
+    // Round to 2 decimal places to avoid floating point errors
     Object.entries(payers).forEach(([payerId, payerInfo]) => {
-      updatedBalances[payerId] = (updatedBalances[payerId] || 0) + payerInfo.amount
+      const roundedAmount = Math.round(payerInfo.amount * 100) / 100
+      updatedBalances[payerId] = Math.round(((updatedBalances[payerId] || 0) + roundedAmount) * 100) / 100
     })
 
     // Subtract amounts from each participant's balance (they owe money)
+    // Round to 2 decimal places to avoid floating point errors
     Object.entries(details).forEach(([participantId, amount]) => {
-      updatedBalances[participantId] = (updatedBalances[participantId] || 0) - amount
+      const roundedAmount = Math.round(amount * 100) / 100
+      updatedBalances[participantId] = Math.round(((updatedBalances[participantId] || 0) - roundedAmount) * 100) / 100
     })
 
     // Calculate total balance for summary (net of all members)
@@ -297,17 +303,17 @@ const revertUserSummariesForExpense = async (groupId, expenseData) => {
         let amountReceivable = 0
 
         if (payerIds.includes(userId)) {
-          amountReceivable = expenseData.payers[userId]?.amount || 0
+          amountReceivable = Math.round((expenseData.payers[userId]?.amount || 0) * 100) / 100
         }
 
         if (participantIds.includes(userId)) {
-          amountOwed = expenseData.splitDetails[userId] || 0
+          amountOwed = Math.round((expenseData.splitDetails[userId] || 0) * 100) / 100
         }
 
         updates[`userSummaries/${String(userId)}`] = {
-          totalExpenseAmount: Math.max(0, (currentSummary.totalExpenseAmount || 0) - expenseData.amount),
-          totalAmountOwed: Math.max(0, (currentSummary.totalAmountOwed || 0) - amountOwed),
-          totalAmountReceivable: Math.max(0, (currentSummary.totalAmountReceivable || 0) - amountReceivable),
+          totalExpenseAmount: Math.max(0, Math.round(((currentSummary.totalExpenseAmount || 0) - expenseData.amount) * 100) / 100),
+          totalAmountOwed: Math.max(0, Math.round(((currentSummary.totalAmountOwed || 0) - amountOwed) * 100) / 100),
+          totalAmountReceivable: Math.max(0, Math.round(((currentSummary.totalAmountReceivable || 0) - amountReceivable) * 100) / 100),
           lastUpdated: Date.now()
         }
 
@@ -328,5 +334,98 @@ const revertUserSummariesForExpense = async (groupId, expenseData) => {
   } catch (error) {
     debugError('Error reverting user summaries', error)
     throw error
+  }
+}
+
+/**
+ * Calculate settlements - who needs to pay whom and how much
+ * Uses a greedy algorithm to minimize the number of transactions
+ * 
+ * @param {Object} group - Group object with members and expenses
+ * @returns {Array} Array of settlement objects { from, to, amount }
+ */
+export const calculateSettlements = (group) => {
+  if (!group?.expenses || !group?.members) {
+    return []
+  }
+
+  try {
+    // Calculate net balance for each member
+    const balances = {} // { userId: netAmount }
+    const memberNames = {} // { userId: name }
+
+    // Initialize balances and store names
+    Object.keys(group.members).forEach(memberId => {
+      balances[memberId] = 0
+      memberNames[memberId] = group.members[memberId].name || 'Unknown'
+    })
+
+    // Process each expense
+    Object.entries(group.expenses).forEach(([expenseId, expense]) => {
+      // Add amount paid by each payer (they paid money, so positive balance)
+      Object.entries(expense.payers || {}).forEach(([payerId, payerInfo]) => {
+        const amount = Math.round(payerInfo.amount * 100) / 100
+        balances[payerId] = Math.round((balances[payerId] + amount) * 100) / 100
+      })
+
+      // Subtract amount owed by each participant (they owe money, so negative balance)
+      // Use splitDetails which contains the calculated split amounts
+      Object.entries(expense.splitDetails || {}).forEach(([participantId, amount]) => {
+        const roundedAmount = Math.round(amount * 100) / 100
+        balances[participantId] = Math.round((balances[participantId] - roundedAmount) * 100) / 100
+      })
+    })
+
+    // Filter out members with zero balance
+    const debtors = [] // People who owe money (negative balance)
+    const creditors = [] // People who are owed money (positive balance)
+
+    Object.entries(balances).forEach(([userId, balance]) => {
+      const roundedBalance = Math.round(balance * 100) / 100 // Round to 2 decimals
+      if (roundedBalance < -0.01) {
+        debtors.push({ userId, amount: Math.abs(roundedBalance), name: memberNames[userId] })
+      } else if (roundedBalance > 0.01) {
+        creditors.push({ userId, amount: roundedBalance, name: memberNames[userId] })
+      }
+    })
+
+    // Sort for consistent ordering
+    debtors.sort((a, b) => b.amount - a.amount)
+    creditors.sort((a, b) => b.amount - a.amount)
+
+    // Greedy algorithm to match debtors with creditors
+    const settlements = []
+    let debtorIdx = 0
+    let creditorIdx = 0
+
+    while (debtorIdx < debtors.length && creditorIdx < creditors.length) {
+      const debtor = debtors[debtorIdx]
+      const creditor = creditors[creditorIdx]
+
+      // Calculate the amount to settle - round to 2 decimal places
+      const settleAmount = Math.round(Math.min(debtor.amount, creditor.amount) * 100) / 100
+
+      settlements.push({
+        from: debtor.userId,
+        fromName: debtor.name,
+        to: creditor.userId,
+        toName: creditor.name,
+        amount: settleAmount
+      })
+
+      // Update remaining amounts (round to avoid floating point errors)
+      debtor.amount = Math.round((debtor.amount - settleAmount) * 100) / 100
+      creditor.amount = Math.round((creditor.amount - settleAmount) * 100) / 100
+
+      // Move to next debtor or creditor if settled
+      if (debtor.amount < 0.01) debtorIdx++
+      if (creditor.amount < 0.01) creditorIdx++
+    }
+
+    debugLog('Settlements calculated', { count: settlements.length, settlements })
+    return settlements
+  } catch (error) {
+    debugError('Error calculating settlements', error)
+    return []
   }
 }

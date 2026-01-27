@@ -427,6 +427,11 @@
   }
 }
 
+/* Settlement Tab */
+.settlement-tab {
+  max-width: 100%;
+}
+
 /* Expenses Tab */
 .expenses-content {
   display: flex;
@@ -526,6 +531,13 @@
   min-width: 0;
 }
 
+.expense-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
 .expense-title-compact {
   font-size: 0.95rem;
   font-weight: 700;
@@ -533,6 +545,23 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.expense-you-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  background-color: rgba(76, 175, 80, 0.1);
+  color: var(--success);
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border-radius: 0.25rem;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .overview-meta {
@@ -732,6 +761,26 @@
 .pill-name {
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.pill-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pill-you-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  background-color: rgba(76, 175, 80, 0.1);
+  color: var(--success);
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border-radius: 0.25rem;
+  white-space: nowrap;
 }
 
 .pill-amount {

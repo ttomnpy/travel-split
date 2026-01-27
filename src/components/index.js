@@ -14,3 +14,4 @@ export { default as CreateGroupModal } from './CreateGroupModal/CreateGroupModal
 export { default as ConfirmationModal } from './ConfirmationModal/ConfirmationModal'
 export { default as MemberManagement } from './MemberManagement/MemberManagement'
 export { default as AddExpenseModal } from './AddExpenseModal/AddExpenseModal'
+export { default as SettlementView } from './SettlementView/SettlementView'
