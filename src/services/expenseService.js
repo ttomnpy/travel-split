@@ -95,10 +95,8 @@ export const createExpense = async (groupId, expenseData, currentUserId) => {
           let amount = Math.round(((expenseData.amount - totalAmount) * percentage) / payerTotalPercentage * 100) / 100
           // Last payer bears rounding difference
           if (index === payerCount - 1) {
-            const paidByPreviousPayers = Object.entries(details)
-              .filter(([id]) => payerIds.includes(id) && payerIds.indexOf(id) < index)
-              .reduce((sum, [_, val]) => sum + val, 0)
-            amount = Math.round((expenseData.amount - totalAmount - paidByPreviousPayers) * 100) / 100
+            // Just use remaining amount to ensure total equals expense amount
+            amount = Math.round((expenseData.amount - totalAmount) * 100) / 100
           }
           details[payerId] = amount
           splitMeta[payerId] = { percentage }
@@ -130,10 +128,8 @@ export const createExpense = async (groupId, expenseData, currentUserId) => {
           let amount = Math.round(((expenseData.amount - totalAmount) * shares) / payerTotalShares * 100) / 100
           // Last payer bears rounding difference
           if (index === payerCount - 1) {
-            const paidByPreviousPayers = Object.entries(details)
-              .filter(([id]) => payerIds.includes(id) && payerIds.indexOf(id) < index)
-              .reduce((sum, [_, val]) => sum + val, 0)
-            amount = Math.round((expenseData.amount - totalAmount - paidByPreviousPayers) * 100) / 100
+            // Just use remaining amount to ensure total equals expense amount
+            amount = Math.round((expenseData.amount - totalAmount) * 100) / 100
           }
           details[payerId] = amount
           splitMeta[payerId] = { shares }
@@ -154,10 +150,8 @@ export const createExpense = async (groupId, expenseData, currentUserId) => {
           let amount = Math.round((expenseData.splitDetails[payerId]?.amount || 0) * 100) / 100
           // Last payer bears rounding difference
           if (index === payerCount - 1) {
-            const paidByPreviousPayers = Object.entries(details)
-              .filter(([id]) => payerIds.includes(id) && payerIds.indexOf(id) < index)
-              .reduce((sum, [_, val]) => sum + val, 0)
-            amount = Math.round((expenseData.amount - totalAmount - paidByPreviousPayers) * 100) / 100
+            // Just use remaining amount to ensure total equals expense amount
+            amount = Math.round((expenseData.amount - totalAmount) * 100) / 100
           }
           details[payerId] = amount
           totalAmount += amount

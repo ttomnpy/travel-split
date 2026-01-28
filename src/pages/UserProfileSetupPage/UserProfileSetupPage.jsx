@@ -5,7 +5,7 @@ import { debugLog, debugError } from '../../utils/debug'
 import './UserProfileSetupPage.css'
 
 export function UserProfileSetupPage({ onProfileComplete }) {
-  const { user, logout, error: authError } = useAuth()
+  const { user, logout, error: authError, updateUserProfileData } = useAuth()
   const [displayName, setDisplayName] = useState(user?.displayName || '')
   const [photoURL, setPhotoURL] = useState(user?.photoURL || '')
   const [previewURL, setPreviewURL] = useState(user?.photoURL || '')
@@ -79,6 +79,12 @@ export function UserProfileSetupPage({ onProfileComplete }) {
       }
 
       debugLog('Profile Setup Completed', { userId: user.uid, displayName })
+      
+      // Update userProfile in AuthContext immediately so all components get the latest data
+      updateUserProfileData({
+        displayName: displayName.trim(),
+        photoURL: previewURL || null
+      })
       
       // Only notify completion if no error occurred
       if (onProfileComplete) {

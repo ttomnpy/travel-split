@@ -148,6 +148,14 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // Update user profile in context (called when user updates their profile)
+  const updateUserProfileData = (updatedProfileData) => {
+    setUserProfile((prevProfile) => ({
+      ...prevProfile,
+      ...updatedProfileData
+    }))
+  }
+
   const value = {
     user,
     userProfile,
@@ -156,7 +164,8 @@ export function AuthProvider({ children }) {
     logout,
     isAuthenticated: !!user,
     isNewUser,
-    setIsNewUser
+    setIsNewUser,
+    updateUserProfileData
   }
 
   return (

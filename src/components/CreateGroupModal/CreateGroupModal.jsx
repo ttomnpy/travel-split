@@ -1,8 +1,7 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef } from 'react';
 import { BiX, BiLoader } from 'react-icons/bi';
 import { useTranslation } from '../../hooks/useTranslation';
 import { createGroup } from '../../services/groupService';
-import { getDisplayName } from '../../utils/displayNameHelper';
 import { debugLog, debugError } from '../../utils/debug';
 import './CreateGroupModal.css';
 

@@ -6,6 +6,17 @@
   border: 1px solid var(--border-color);
 }
 
+/* When in empty state, take full width */
+.settlement-empty-state .settlement-history {
+  margin-top: 32px;
+  padding: 16px;
+  background-color: var(--bg-dark);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  width: 100%;
+  max-width: none;
+}
+
 .settlement-history-title {
   margin: 0 0 16px 0;
   font-size: 16px;

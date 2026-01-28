@@ -206,8 +206,19 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 24px;
+  padding: 60px 0;
   text-align: center;
+}
+
+.settlement-empty-state > .empty-icon,
+.settlement-empty-state > h3,
+.settlement-empty-state > p,
+.settlement-empty-state > .record-payment-button {
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 24px;
+  padding-right: 24px;
 }
 
 .empty-icon {
