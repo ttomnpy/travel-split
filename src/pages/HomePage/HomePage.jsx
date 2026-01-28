@@ -76,11 +76,7 @@ function HomePage({ onLogout }) {
           }))
 
           setUserGroups(groupsArray)
-          setOverallSummary({
-            totalGroupCount: 0,
-            totalBalance: 0,
-            totalPendingAmount: 0
-          })
+          // Note: overallSummary is managed by the userSummaries listener, don't reset it here
 
           // Clean up old listeners
           unsubscribeExpenses.forEach(unsub => unsub())
@@ -89,7 +85,7 @@ function HomePage({ onLogout }) {
 
           // Set up listeners for each group's summary and expenses
           for (const groupId of Object.keys(groups)) {
-            // Listen to group summary for member count
+            // Listen to group summary for member count and user balance
             const groupSummaryRef = ref(rtdb, `groups/${groupId}/summary`)
             const summaryUnsubscribe = onValue(
               groupSummaryRef,
@@ -97,12 +93,19 @@ function HomePage({ onLogout }) {
                 if (summarySnapshot.exists()) {
                   const summary = summarySnapshot.val()
                   debugLog(`Group ${groupId} summary updated:`, summary)
-                  // Update the userGroups with the correct memberCount
-                  setUserGroups(prev => prev.map(g => 
-                    g.id === groupId 
-                      ? { ...g, summary }
-                      : g
-                  ))
+                  // Update the userGroups with the correct memberCount and pendingAmount
+                  setUserGroups(prev => prev.map(g => {
+                    if (g.id === groupId) {
+                      // Calculate user's balance in this group from balances object
+                      const userBalance = summary.balances?.[user.uid] || 0
+                      return { 
+                        ...g, 
+                        summary,
+                        pendingAmount: userBalance
+                      }
+                    }
+                    return g
+                  }))
                 }
               },
               (error) => {
@@ -185,10 +188,11 @@ function HomePage({ onLogout }) {
   }
 
   const formatCurrency = (amount, currency = 'USD') => {
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : (amount || 0)
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency
-    }).format(amount || 0)
+    }).format(numAmount)
   }
 
   const formatDate = (timestamp) => {

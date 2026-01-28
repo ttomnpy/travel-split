@@ -603,6 +603,21 @@ function GroupDetailPage({ onLogout }) {
                                   </div>
                                 </div>
 
+                                {/* Payment Details - Show what each participant needs to pay */}
+                                {expense.splitDetails && Object.keys(expense.splitDetails).length > 0 && (
+                                  <div className="details-group">
+                                    <div className="group-label">{t('groupDetail.paymentDetails') || 'Payment Details'}</div>
+                                    <div className="details-pills">
+                                      {Object.entries(expense.splitDetails).map(([memberId, amount]) => (
+                                        <div key={memberId} className="detail-pill payment">
+                                          <span className="pill-name">{members[memberId]?.name || 'Unknown'} {t('groupDetail.owes') || 'owes'}</span>
+                                          <span className="pill-amount">{formatCurrency(amount)}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
                                 {expense.location && (
                                   <div className="details-group">
                                     <div className="group-label">{t('groupDetail.location') || 'Location'}</div>

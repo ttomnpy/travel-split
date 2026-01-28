@@ -129,6 +129,8 @@
     "noExpenses": "No expenses yet",
     "paidBy": "Paid by",
     "involvedMembers": "Involved",
+    "paymentDetails": "Payment Details",
+    "owes": "needs to pay",
     "location": "Location",
     "deleteExpenseError": "Failed to delete expense. Please try again.",
     "deleteExpenseTitle": "Delete Expense?",
