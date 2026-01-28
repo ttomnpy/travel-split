@@ -1,0 +1,254 @@
+.settlement-history {
+  margin-top: 24px;
+  padding: 16px;
+  background-color: var(--bg-dark);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+}
+
+.settlement-history-title {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.empty-history {
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.empty-history p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.settlement-records {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Individual Settlement Record */
+.settlement-record {
+  background: var(--bg-darker, rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px 48px 12px 16px;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settlement-record:hover {
+  border-color: var(--primary-accent);
+  box-shadow: 0 2px 8px rgba(255, 191, 0, 0.1);
+}
+
+.settlement-record.user-involved {
+  border-color: var(--primary-accent);
+  background: linear-gradient(135deg, rgba(255, 191, 0, 0.05) 0%, rgba(255, 191, 0, 0.02) 100%);
+}
+
+.settlement-record.user-payer {
+  border-left: 3px solid #ff6b6b;
+}
+
+.settlement-record.user-recipient {
+  border-left: 3px solid #51cf66;
+}
+
+/* Record Header */
+.record-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Parties */
+.record-parties {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.party-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.party-info.recipient {
+  text-align: right;
+}
+
+.party-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  word-break: break-word;
+}
+
+.party-info.recipient .party-name {
+  flex-direction: row-reverse;
+}
+
+.you-badge {
+  display: inline-block;
+  background-color: var(--primary-accent);
+  color: var(--bg-dark);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.party-role {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.arrow-container {
+  flex-shrink: 0;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arrow {
+  font-size: 18px;
+  color: var(--text-secondary);
+  display: inline-block;
+}
+
+/* Amount */
+.record-amount {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary-accent);
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* Details */
+.record-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.detail-item.full-width {
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+}
+
+.detail-item svg {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.detail-item span {
+  word-break: break-word;
+  color: var(--text-primary);
+}
+
+/* Delete Button */
+.delete-button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+  opacity: 0;
+}
+
+.settlement-record:hover .delete-button {
+  opacity: 1;
+}
+
+.delete-button:hover:not(:disabled) {
+  color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.delete-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .settlement-history {
+    margin-top: 20px;
+    padding: 12px;
+  }
+
+  .record-header {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .record-parties {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .party-info {
+    min-width: 0;
+  }
+
+  .record-amount {
+    text-align: left;
+    padding: 8px 0;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .record-details {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    padding-top: 8px;
+  }
+
+  .detail-item {
+    font-size: 12px;
+  }
+
+  .detail-item.full-width {
+    grid-column: 1 / -1;
+  }
+}

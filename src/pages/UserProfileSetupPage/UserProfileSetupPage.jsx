@@ -146,7 +146,7 @@ export function UserProfileSetupPage({ onProfileComplete }) {
           </div>
 
           {/* Display Name Section */}
-          <div className="form-group">
+          <div className="upsp-form-group">
             <label htmlFor="displayName">Display Name</label>
             <input
               id="displayName"
@@ -174,17 +174,17 @@ export function UserProfileSetupPage({ onProfileComplete }) {
           )}
 
           {/* Action Buttons */}
-          <div className="button-group">
+          <div className="upsp-button-group">
             <button
               type="submit"
-              className="btn btn-primary"
+              className="upsp-btn upsp-btn-primary"
               disabled={loading || !displayName.trim()}
             >
               {loading ? 'Saving...' : 'Complete Profile'}
             </button>
             <button
               type="button"
-              className="btn btn-secondary"
+              className="upsp-btn upsp-btn-secondary"
               onClick={logout}
               disabled={loading}
             >

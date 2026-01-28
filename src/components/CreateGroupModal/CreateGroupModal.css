@@ -33,7 +33,7 @@
   border-radius: 1rem;
   width: 100%;
   max-width: 500px;
-  max-height: 95dvh;
+  max-height: 70vh;
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   animation: cgm-slideUp 300ms ease;
@@ -316,7 +316,7 @@
   .cgm-content {
     border-radius: 1rem;
     max-width: 100%;
-    max-height: 92dvh;
+    max-height: 70vh;
     overflow-y: auto;
   }
 
@@ -390,7 +390,7 @@
   .cgm-content {
     border-radius: 1rem;
     max-width: 100%;
-    max-height: 92dvh;
+    max-height: 70vh;
   }
 
   .cgm-header {
@@ -582,7 +582,7 @@
   border-radius: 1rem;
   width: 100%;
   max-width: 500px;
-  max-height: 95dvh;
+  max-height: 70vh;
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   animation: cgm-slideUp 300ms ease;
@@ -865,7 +865,7 @@
   .cgm-content {
     border-radius: 1rem;
     max-width: 100%;
-    max-height: 92dvh;
+    max-height: 70vh;
     overflow-y: auto;
   }
 
@@ -943,7 +943,7 @@
   .cgm-content {
     border-radius: 1rem;
     max-width: 100%;
-    max-height: 92dvh;
+    max-height: 70vh;
   }
 
   .cgm-header {
@@ -1094,3 +1094,4 @@
   outline: 2px solid var(--primary-accent);
   outline-offset: 2px;
 }
+

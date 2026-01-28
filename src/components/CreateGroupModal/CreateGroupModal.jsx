@@ -1,11 +1,13 @@
 ﻿import React, { useState, useRef, useEffect } from 'react';
 import { BiX, BiLoader } from 'react-icons/bi';
+import { useTranslation } from '../../hooks/useTranslation';
 import { createGroup } from '../../services/groupService';
 import { getDisplayName } from '../../utils/displayNameHelper';
 import { debugLog, debugError } from '../../utils/debug';
 import './CreateGroupModal.css';
 
 const CreateGroupModal = ({ isOpen, onClose, onGroupCreated, userId, userData }) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -29,16 +31,16 @@ const CreateGroupModal = ({ isOpen, onClose, onGroupCreated, userId, userData })
     const newErrors = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Trip name is required';
+      newErrors.name = t('createGroup.nameRequired') || 'Trip name is required';
     } else if (formData.name.length > 50) {
-      newErrors.name = 'Trip name must be less than 50 characters';
+      newErrors.name = t('createGroup.nameTooLong') || 'Trip name must be less than 50 characters';
     }
 
     if (
       formData.description &&
       formData.description.length > 200
     ) {
-      newErrors.description = 'Description must be less than 200 characters';
+      newErrors.description = t('createGroup.descriptionTooLong') || 'Description must be less than 200 characters';
     }
 
     setErrors(newErrors);
@@ -92,7 +94,7 @@ const CreateGroupModal = ({ isOpen, onClose, onGroupCreated, userId, userData })
     } catch (error) {
       debugError('Error creating group', error);
       setSubmitError(
-        error.message || 'Failed to create trip. Please try again.'
+        error.message || t('createGroup.createError') || 'Failed to create trip. Please try again.'
       );
     } finally {
       setIsLoading(false);
@@ -121,13 +123,13 @@ const CreateGroupModal = ({ isOpen, onClose, onGroupCreated, userId, userData })
       >
         {submitSuccess && (
           <div className="cgm-success">
-             Trip created successfully!
+             {t('createGroup.createSuccess') || 'Trip created successfully!'}
           </div>
         )}
 
         <div className="cgm-header">
           <h2 id="modal-title" className="cgm-title">
-            Create Trip
+            {t('createGroup.createTrip') || 'Create Trip'}
           </h2>
           <button
             className="cgm-close-btn"
@@ -146,7 +148,7 @@ const CreateGroupModal = ({ isOpen, onClose, onGroupCreated, userId, userData })
 
           <div className="cgm-form-group">
             <label htmlFor="cgm-name" className="cgm-form-label">
-              Trip Name <span className="cgm-required">*</span>
+              {t('createGroup.tripName') || 'Trip Name'} <span className="cgm-required">*</span>
             </label>
             <input
               type="text"
@@ -154,7 +156,7 @@ const CreateGroupModal = ({ isOpen, onClose, onGroupCreated, userId, userData })
               name="name"
               value={formData.name}
               onChange={handleInputChange}
-              placeholder="e.g., Japan Trip 2026"
+              placeholder={t('createGroup.tripNamePlaceholder') || 'e.g., Japan Trip 2026'}
               className={`cgm-input ${errors.name ? 'cgm-error' : ''}`}
               disabled={isLoading}
               maxLength="50"
@@ -169,14 +171,14 @@ const CreateGroupModal = ({ isOpen, onClose, onGroupCreated, userId, userData })
 
           <div className="cgm-form-group">
             <label htmlFor="cgm-description" className="cgm-form-label">
-              Description (optional)
+              {t('createGroup.description') || 'Description'} ({t('createGroup.optional') || 'optional'})
             </label>
             <textarea
               id="cgm-description"
               name="description"
               value={formData.description}
               onChange={handleInputChange}
-              placeholder="e.g., Tokyo & Osaka 7 days"
+              placeholder={t('createGroup.descriptionPlaceholder') || 'e.g., Tokyo & Osaka 7 days'}
               className={`cgm-input ${errors.description ? 'cgm-error' : ''}`}
               disabled={isLoading}
               maxLength="200"
@@ -191,7 +193,7 @@ const CreateGroupModal = ({ isOpen, onClose, onGroupCreated, userId, userData })
 
           <div className="cgm-form-group">
             <label htmlFor="cgm-currency" className="cgm-form-label">
-              Currency <span className="cgm-required">*</span>
+              {t('createGroup.currency') || 'Currency'} <span className="cgm-required">*</span>
             </label>
             <select
               id="cgm-currency"
@@ -216,7 +218,7 @@ const CreateGroupModal = ({ isOpen, onClose, onGroupCreated, userId, userData })
               onClick={handleCancel}
               disabled={isLoading}
             >
-              Cancel
+              {t('common.cancel') || 'Cancel'}
             </button>
             <button
               type="submit"
@@ -224,7 +226,7 @@ const CreateGroupModal = ({ isOpen, onClose, onGroupCreated, userId, userData })
               disabled={isLoading}
             >
               {isLoading && <BiLoader className="cgm-spinner" />}
-              {isLoading ? 'Creating...' : 'Create Trip'}
+              {isLoading ? (t('common.creating') || 'Creating...') : (t('createGroup.createTrip') || 'Create Trip')}
             </button>
           </div>
         </form>

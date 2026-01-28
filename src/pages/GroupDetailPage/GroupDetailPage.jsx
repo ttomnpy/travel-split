@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ref, onValue } from 'firebase/database'
 import { rtdb } from '../../firebase'
@@ -7,8 +7,8 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { getDisplayName } from '../../utils/displayNameHelper'
 import { debugLog, debugError } from '../../utils/debug'
 import { getGroup } from '../../services/groupService'
-import { deleteExpense, calculateSettlements } from '../../services/expenseService'
-import { AddMemberModal, InviteModal, MembersList, LoadingSpinner, HeaderControls, AddExpenseModal, ConfirmationModal, SettlementView } from '../../components'
+import { deleteExpense, calculateSettlements, getSettlementRecords, deleteSettlementRecord } from '../../services/expenseService'
+import { AddMemberModal, InviteModal, MembersList, LoadingSpinner, HeaderControls, AddExpenseModal, ConfirmationModal, SettlementView, SettlementRecordModal, SettlementHistory } from '../../components'
 import { BiUndo, BiPlus, BiMoney, BiX, BiLock, BiShare, BiReceipt, BiChevronDown, BiTrash } from 'react-icons/bi';
 import './GroupDetailPage.css'
 
@@ -26,14 +26,19 @@ function GroupDetailPage({ onLogout }) {
   const [showAddMemberModal, setShowAddMemberModal] = useState(false)
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false)
+  const [showSettlementRecordModal, setShowSettlementRecordModal] = useState(false)
   const [activeTab, setActiveTab] = useState('members')
   const [expandedExpense, setExpandedExpense] = useState(null)
   const [expenseToDelete, setExpenseToDelete] = useState(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [settlementRecords, setSettlementRecords] = useState([])
+  const [isLoadingSettlements, setIsLoadingSettlements] = useState(false)
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
+    type: null, // 'expense' or 'settlement'
     expenseId: null,
     expense: null,
+    settlementId: null,
     isLoading: false
   })
 
@@ -78,6 +83,38 @@ function GroupDetailPage({ onLogout }) {
     return () => unsubscribe()
   }, [groupId])
 
+  // Load settlement records with real-time listening
+  useEffect(() => {
+    if (!groupId) return
+
+    const settlementsRef = ref(rtdb, `groups/${groupId}/settlementRecords`)
+    const unsubscribe = onValue(
+      settlementsRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const recordsData = snapshot.val()
+          // Records stored as object with unique IDs
+          const records = Object.entries(recordsData).map(([id, record]) => ({
+            id,
+            ...record
+          }))
+          
+          setSettlementRecords(records)
+          debugLog('Settlement records updated', { count: records.length })
+        } else {
+          setSettlementRecords([])
+        }
+        setIsLoadingSettlements(false)
+      },
+      (err) => {
+        debugError('Error loading settlement records', err)
+        setIsLoadingSettlements(false)
+      }
+    )
+
+    return () => unsubscribe()
+  }, [groupId])
+
   const isOwner = group && group.owner === user?.uid
   const isGroupMember = group && members && (user?.uid in members)
   const hasPermission = isOwner || isGroupMember
@@ -85,6 +122,25 @@ function GroupDetailPage({ onLogout }) {
   const isAdmin = userRole === 'admin'
   const expenseCount = group?.expenses ? Object.keys(group.expenses).length : 0
   const totalAmount = group?.summary?.totalExpenses || 0
+
+  // Calculate settlements only when needed (settlement tab or modal open)
+  // Split into two useMemo to avoid unnecessary recalculations
+  const settlementsForTab = useMemo(() => {
+    if (!group || activeTab !== 'settlement') {
+      return []
+    }
+    debugLog('Calculating settlements for settlement tab', { activeTab })
+    return calculateSettlements(group)
+  }, [group, activeTab])
+
+  // Settlements for modal (only calculated when modal is open)
+  const settlementsForModal = useMemo(() => {
+    if (!group || !showSettlementRecordModal) {
+      return []
+    }
+    debugLog('Calculating settlements for settlement record modal', { showSettlementRecordModal })
+    return calculateSettlements(group)
+  }, [group, showSettlementRecordModal])
 
   // Check if current user can delete an expense
   const canDeleteExpense = (expense) => {
@@ -133,10 +189,48 @@ function GroupDetailPage({ onLogout }) {
   const handleCancelDeleteExpense = () => {
     setConfirmModal({
       isOpen: false,
+      type: null,
       expenseId: null,
       expense: null,
+      settlementId: null,
       isLoading: false
     })
+  }
+
+  const handleSettlementRecorded = () => {
+    // Settlement records will be updated automatically via real-time listener
+    debugLog('Settlement recorded, real-time listener will update the records')
+  }
+
+  const handleDeleteSettlementRecord = async (recordId, record) => {
+    setConfirmModal({
+      isOpen: true,
+      type: 'settlement',
+      settlementId: recordId,
+      isLoading: false
+    })
+  }
+
+  const handleConfirmDeleteSettlement = async () => {
+    const recordId = confirmModal.settlementId
+
+    try {
+      setConfirmModal(prev => ({ ...prev, isLoading: true }))
+      await deleteSettlementRecord(groupId, recordId)
+      
+      // Settlement records will be updated automatically via real-time listener
+      debugLog('Settlement record deleted', { recordId })
+    } catch (err) {
+      debugError('Error deleting settlement record', err)
+      setError(err.message || t('settlement.deleteError') || 'Failed to delete settlement record')
+    } finally {
+      setConfirmModal({
+        isOpen: false,
+        type: null,
+        settlementId: null,
+        isLoading: false
+      })
+    }
   }
 
   const formatCurrency = (amount) => {
@@ -551,10 +645,15 @@ function GroupDetailPage({ onLogout }) {
           {activeTab === 'settlement' && (
             <div className="tab-content settlement-tab">
               <SettlementView
-                settlements={calculateSettlements(group)}
+                settlements={settlementsForTab}
                 formatCurrency={formatCurrency}
                 currentUserId={user?.uid}
                 t={t}
+                groupMembers={members}
+                settlementRecords={settlementRecords}
+                onOpenRecordModal={() => setShowSettlementRecordModal(true)}
+                onDeleteRecord={handleDeleteSettlementRecord}
+                isLoading={isLoadingSettlements}
               />
             </div>
           )}
@@ -589,16 +688,36 @@ function GroupDetailPage({ onLogout }) {
           }}
         />
 
-        {/* Delete Expense Confirmation Modal */}
+        {/* Settlement Record Modal */}
+        <SettlementRecordModal
+          isOpen={showSettlementRecordModal}
+          onClose={() => setShowSettlementRecordModal(false)}
+          groupId={groupId}
+          groupMembers={members}
+          groupCurrency={group?.currency}
+          currentUserId={user?.uid}
+          onSettlementRecorded={handleSettlementRecorded}
+          settlements={settlementsForModal}
+        />
+
+        {/* Delete Confirmation Modal */}
         <ConfirmationModal
           isOpen={confirmModal.isOpen}
-          title={t('groupDetail.deleteExpenseTitle') || 'Delete Expense?'}
-          message={t('groupDetail.deleteExpenseMessage') || 'Are you sure you want to delete this expense? This action cannot be undone.'}
+          title={
+            confirmModal.type === 'settlement'
+              ? t('settlement.deleteConfirm') || 'Delete Payment Record?'
+              : t('groupDetail.deleteExpenseTitle') || 'Delete Expense?'
+          }
+          message={
+            confirmModal.type === 'settlement'
+              ? t('settlement.deleteMessage') || 'Are you sure you want to delete this payment record? This action cannot be undone.'
+              : t('groupDetail.deleteExpenseMessage') || 'Are you sure you want to delete this expense? This action cannot be undone.'
+          }
           confirmText={t('groupDetail.deleteButton') || 'Delete'}
           cancelText={t('common.cancel') || 'Cancel'}
           isDangerous={true}
           isLoading={confirmModal.isLoading}
-          onConfirm={handleConfirmDeleteExpense}
+          onConfirm={confirmModal.type === 'settlement' ? handleConfirmDeleteSettlement : handleConfirmDeleteExpense}
           onCancel={handleCancelDeleteExpense}
         />
 

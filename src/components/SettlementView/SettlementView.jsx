@@ -1,8 +1,19 @@
-import React from 'react'
-import { BiCheck } from 'react-icons/bi'
+import React, { useState } from 'react'
+import { BiCheck, BiPlus } from 'react-icons/bi'
+import SettlementHistory from '../SettlementHistory/SettlementHistory'
 import './SettlementView.css'
 
-function SettlementView({ settlements, formatCurrency, currentUserId, t }) {
+function SettlementView({ 
+  settlements, 
+  formatCurrency, 
+  currentUserId, 
+  t,
+  groupMembers,
+  settlementRecords,
+  onOpenRecordModal,
+  onDeleteRecord,
+  isLoading
+}) {
   if (!settlements || settlements.length === 0) {
     return (
       <div className="settlement-empty-state">
@@ -11,6 +22,30 @@ function SettlementView({ settlements, formatCurrency, currentUserId, t }) {
         </div>
         <h3>{t('settlement.allSettled') || 'All Settled!'}</h3>
         <p>{t('settlement.noOutstandingDebts') || 'No outstanding debts. Everyone is settled up!'}</p>
+        
+        {/* Show button to record settlement even when all settled */}
+        {onOpenRecordModal && (
+          <button 
+            className="record-payment-button"
+            onClick={onOpenRecordModal}
+          >
+            <BiPlus size={18} />
+            {t('settlement.recordPayment') || 'Record Payment'}
+          </button>
+        )}
+
+        {/* Show settlement history */}
+        {settlementRecords && settlementRecords.length > 0 && (
+          <SettlementHistory
+            settlementRecords={settlementRecords}
+            members={groupMembers}
+            formatCurrency={formatCurrency}
+            currentUserId={currentUserId}
+            onDeleteRecord={onDeleteRecord}
+            t={t}
+            isLoading={isLoading}
+          />
+        )}
       </div>
     )
   }
@@ -18,8 +53,20 @@ function SettlementView({ settlements, formatCurrency, currentUserId, t }) {
   return (
     <div className="settlement-view">
       <div className="settlement-header">
-        <h3>{t('settlement.settleUpTitle') || 'Settlement Summary'}</h3>
-        <p className="settlement-subtitle">{t('settlement.settleUpDescription') || 'Here\'s who needs to pay whom to settle all expenses'}</p>
+        <div className="header-content">
+          <h3>{t('settlement.settleUpTitle') || 'Settlement Summary'}</h3>
+          <p className="settlement-subtitle">{t('settlement.settleUpDescription') || 'Here\'s who needs to pay whom to settle all expenses'}</p>
+        </div>
+        {onOpenRecordModal && (
+          <button 
+            className="record-payment-button"
+            onClick={onOpenRecordModal}
+            title={t('settlement.recordPayment') || 'Record Payment'}
+          >
+            <BiPlus size={18} />
+            <span>{t('settlement.recordPayment') || 'Record Payment'}</span>
+          </button>
+        )}
       </div>
 
       <div className="settlement-list">
@@ -78,6 +125,19 @@ function SettlementView({ settlements, formatCurrency, currentUserId, t }) {
           )
         })}
       </div>
+
+      {/* Settlement History */}
+      {settlementRecords && settlementRecords.length > 0 && (
+        <SettlementHistory
+          settlementRecords={settlementRecords}
+          members={groupMembers}
+          formatCurrency={formatCurrency}
+          currentUserId={currentUserId}
+          onDeleteRecord={onDeleteRecord}
+          t={t}
+          isLoading={isLoading}
+        />
+      )}
     </div>
   )
 }

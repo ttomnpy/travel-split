@@ -142,11 +142,11 @@
 }
 
 /* Form Group */
-.form-group {
+.upsp-form-group {
   margin-bottom: 16px;
 }
 
-.form-group label {
+.upsp-form-group label {
   display: block;
   font-size: 13px;
   font-weight: 600;
@@ -155,7 +155,7 @@
   letter-spacing: 0.3px;
 }
 
-.form-group input {
+.upsp-form-group input {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--border-color);
@@ -168,18 +168,18 @@
   color: var(--text-primary);
 }
 
-.form-group input::placeholder {
+.upsp-form-group input::placeholder {
   color: var(--text-tertiary);
 }
 
-.form-group input:focus {
+.upsp-form-group input:focus {
   outline: none;
   border-color: var(--primary-accent);
   box-shadow: 0 0 12px rgba(255, 191, 0, 0.15);
   background: var(--bg-darker);
 }
 
-.form-group input:disabled {
+.upsp-form-group input:disabled {
   background-color: var(--bg-darker);
   color: var(--text-tertiary);
   cursor: not-allowed;
@@ -220,14 +220,14 @@
 }
 
 /* Button Group */
-.button-group {
+.upsp-button-group {
   display: flex;
   flex-direction: column;
   gap: 10px;
   margin-top: 20px;
 }
 
-.btn {
+.upsp-btn {
   padding: 10px 14px;
   border: none;
   border-radius: 8px;
@@ -240,33 +240,33 @@
   letter-spacing: 0.3px;
 }
 
-.btn:disabled {
+.upsp-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.btn-primary {
+.upsp-btn-primary {
   background-color: var(--primary-accent);
   color: var(--bg-dark);
 }
 
-.btn-primary:hover:not(:disabled) {
+.upsp-btn-primary:hover:not(:disabled) {
   background-color: var(--primary-accent-light);
   box-shadow: 0 4px 16px rgba(255, 191, 0, 0.25);
   transform: translateY(-1px);
 }
 
-.btn-primary:active:not(:disabled) {
+.upsp-btn-primary:active:not(:disabled) {
   transform: translateY(0);
 }
 
-.btn-secondary {
+.upsp-btn-secondary {
   background-color: var(--bg-darker);
   color: var(--text-secondary);
   border: 1px solid var(--border-color);
 }
 
-.btn-secondary:hover:not(:disabled) {
+.upsp-btn-secondary:hover:not(:disabled) {
   background-color: var(--border-color);
   color: var(--text-primary);
   border-color: var(--primary-accent);
@@ -307,7 +307,7 @@
     margin-bottom: 20px;
   }
 
-  .form-group {
+  .upsp-form-group {
     margin-bottom: 14px;
   }
 }

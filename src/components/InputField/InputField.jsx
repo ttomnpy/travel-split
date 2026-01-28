@@ -11,7 +11,7 @@ function InputField({
   ...props
 }) {
   return (
-    <div className="input-group">
+    <div className="if-input-group">
       {label && <label>{label}</label>}
       <input
         type={type}

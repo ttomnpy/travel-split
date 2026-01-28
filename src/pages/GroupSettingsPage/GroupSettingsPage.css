@@ -179,25 +179,25 @@
 }
 
 /* Form Group */
-.form-group {
+.gsp-form-group {
   margin-bottom: 1.5rem;
 }
 
-.form-group:last-of-type {
+.gsp-form-group:last-of-type {
   margin-bottom: 2rem;
 }
 
 @media (min-width: 1024px) {
-  .form-group {
+  .gsp-form-group {
     margin-bottom: 2rem;
   }
 
-  .form-group:last-of-type {
+  .gsp-form-group:last-of-type {
     margin-bottom: 2.5rem;
   }
 }
 
-.form-group label {
+.gsp-form-group label {
   display: block;
   font-weight: 600;
   margin-bottom: 0.5rem;
@@ -206,15 +206,15 @@
 }
 
 @media (min-width: 1024px) {
-  .form-group label {
+  .gsp-form-group label {
     font-size: 1rem;
     margin-bottom: 0.75rem;
   }
 }
 
-.form-group input,
-.form-group select,
-.form-group textarea {
+.gsp-form-group input,
+.gsp-form-group select,
+.gsp-form-group textarea {
   width: 100%;
   padding: 0.75rem 1rem;
   border: 1px solid var(--border-color);
@@ -227,40 +227,40 @@
 }
 
 @media (min-width: 1024px) {
-  .form-group input,
-  .form-group select,
-  .form-group textarea {
+  .gsp-form-group input,
+  .gsp-form-group select,
+  .gsp-form-group textarea {
     padding: 0.875rem 1.125rem;
     font-size: 1.025rem;
     border-radius: 0.625rem;
   }
 }
 
-.form-group input::placeholder,
-.form-group select::placeholder,
-.form-group textarea::placeholder {
+.gsp-form-group input::placeholder,
+.gsp-form-group select::placeholder,
+.gsp-form-group textarea::placeholder {
   color: var(--text-tertiary);
 }
 
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
+.gsp-form-group input:focus,
+.gsp-form-group select:focus,
+.gsp-form-group textarea:focus {
   outline: none;
   border-color: var(--primary-accent);
   background-color: rgba(45, 45, 68, 0.8);
   box-shadow: 0 0 0 3px rgba(255, 191, 0, 0.1);
 }
 
-.form-group input:disabled,
-.form-group select:disabled,
-.form-group textarea:disabled {
+.gsp-form-group input:disabled,
+.gsp-form-group select:disabled,
+.gsp-form-group textarea:disabled {
   background-color: rgba(45, 45, 68, 0.3);
   color: var(--text-tertiary);
   cursor: not-allowed;
   opacity: 0.6;
 }
 
-.form-hint {
+.gsp-form-hint {
   font-size: 0.8rem;
   color: var(--text-tertiary);
   margin-top: 0.5rem;
@@ -428,9 +428,9 @@
     font-size: 1rem;
   }
 
-  .form-group input,
-  .form-group select,
-  .form-group textarea {
+  .gsp-form-group input,
+  .gsp-form-group select,
+  .gsp-form-group textarea {
     padding: 0.625rem 0.875rem;
     font-size: 16px;
   }

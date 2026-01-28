@@ -33,7 +33,7 @@
   border-radius: 1rem;
   width: 100%;
   max-width: 550px;
-  max-height: 95dvh;
+  max-height: 70vh;
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   animation: aem-slideUp 300ms ease;
@@ -375,9 +375,49 @@
   margin-top: 0.25rem;
 }
 
+/* Action Buttons Container */
+.aem-action-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+/* Cancel Button */
+.aem-cancel-btn {
+  background-color: var(--bg-lighter);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  padding: 0.875rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 200ms ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.aem-cancel-btn:hover:not(:disabled) {
+  background-color: var(--bg-card);
+  border-color: var(--text-secondary);
+}
+
+.aem-cancel-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.aem-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Submit Button */
 .aem-submit-btn {
-  grid-column: 1 / -1;
   background: linear-gradient(135deg, var(--primary-accent) 0%, #ffd700 100%);
   color: var(--bg-dark);
   border: none;
@@ -393,7 +433,6 @@
   gap: 0.5rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-top: 0.5rem;
 }
 
 .aem-submit-btn:hover:not(:disabled) {
@@ -427,13 +466,14 @@
 @media (max-width: 640px) {
   .aem-content {
     max-width: 100%;
-    border-radius: 1.5rem 1.5rem 0 0;
-    max-height: 95dvh;
+    border-radius: 0.75rem;
+    max-height: 70vh;
   }
 
   .aem-overlay {
-    align-items: flex-end;
-    padding: 0;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 0.5rem;
   }
 
   .aem-form {
@@ -442,11 +482,11 @@
   }
 
   .aem-header {
-    padding: 1rem;
+    padding: 0.875rem 1rem;
   }
 
   .aem-title {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
   }
 
   .aem-row {

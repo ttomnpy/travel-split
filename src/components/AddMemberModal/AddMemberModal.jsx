@@ -100,13 +100,13 @@ function AddMemberModal({ isOpen, onClose, groupId, groupMembers, onMemberAdded 
   if (!isOpen) return null
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
+    <div className="amm-overlay" onClick={onClose}>
+      <div className="amm-content" onClick={e => e.stopPropagation()}>
         {/* Modal Header */}
-        <div className="modal-header">
-          <h2 className="modal-title">{t('addMember.title')}</h2>
+        <div className="amm-header">
+          <h2 className="amm-title">{t('addMember.title')}</h2>
           <button
-            className="modal-close-btn"
+            className="amm-close-btn"
             onClick={onClose}
             aria-label="Close modal"
             disabled={isLoading}
@@ -117,28 +117,28 @@ function AddMemberModal({ isOpen, onClose, groupId, groupMembers, onMemberAdded 
 
         {/* Success Message */}
         {success && (
-          <div className="modal-success">
+          <div className="amm-success">
             <span>{t('addMember.success')}</span>
           </div>
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="modal-form">
+        <form onSubmit={handleSubmit} className="amm-form">
           {/* Info Message */}
-          <div className="modal-info">
+          <div className="amm-info">
             <span>{t('addMember.subtitle')}</span>
           </div>
 
           {/* Error Banner */}
           {error && (
-            <div className="modal-error">
+            <div className="amm-error">
               <span>{error}</span>
             </div>
           )}
 
           {/* Name Input */}
-          <div className="modal-form-group">
-            <label htmlFor="member-name" className="modal-label">
+          <div className="amm-form-group">
+            <label htmlFor="member-name" className="amm-label">
               {t('addMember.memberName')} <span className="required">{t('addMember.required')}</span>
             </label>
             <div className="input-wrapper">
@@ -152,7 +152,7 @@ function AddMemberModal({ isOpen, onClose, groupId, groupMembers, onMemberAdded 
                 maxLength={30}
                 autoFocus
                 disabled={isLoading}
-                className={`modal-input ${error ? 'error' : ''}`}
+                className={`amm-input ${error ? 'error' : ''}`}
               />
             </div>
             <div className="char-count">
@@ -161,10 +161,10 @@ function AddMemberModal({ isOpen, onClose, groupId, groupMembers, onMemberAdded 
           </div>
 
           {/* Buttons */}
-          <div className="modal-actions">
+          <div className="amm-actions">
             <button
               type="button"
-              className="modal-btn modal-btn-secondary"
+              className="amm-btn amm-btn-secondary"
               onClick={onClose}
               disabled={isLoading}
             >
@@ -172,7 +172,7 @@ function AddMemberModal({ isOpen, onClose, groupId, groupMembers, onMemberAdded 
             </button>
             <button
               type="submit"
-              className="modal-btn modal-btn-primary"
+              className="amm-btn amm-btn-primary"
               disabled={isLoading || !memberName.trim()}
             >
               {isLoading ? (

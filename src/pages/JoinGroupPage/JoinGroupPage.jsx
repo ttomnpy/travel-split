@@ -304,7 +304,7 @@ function JoinGroupPage({ onLogout = () => {} }) {
               {t('joinGroup.codeDescription') || 'Ask the group organizer for an 8-character invite code'}
             </p>
 
-            <div className="input-group">
+            <div className="jgp-input-group">
               <input
                 type="text"
                 className="invite-code-input"

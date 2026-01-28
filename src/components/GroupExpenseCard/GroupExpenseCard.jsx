@@ -23,7 +23,7 @@ function GroupExpenseCard({
   return (
     <div className={`expense-card ${variant}`}>
       {/* Card Header */}
-      <div className="card-header">
+      <div className="gec-card-header">
         <h3 className="group-name">{groupName}</h3>
         <div className="member-count">{memberCount}</div>
       </div>

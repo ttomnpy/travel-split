@@ -33,7 +33,7 @@ export const updateAllUserSummaries = async (groupId, expenseData) => {
         const userSummarySnapshot = await get(userSummaryRef)
 
         let currentSummary = {
-          totalExpenseAmount: 0,
+          totalBalance: 0,
           totalAmountOwed: 0,
           totalAmountReceivable: 0,
           lastUpdated: Date.now()
@@ -59,10 +59,14 @@ export const updateAllUserSummaries = async (groupId, expenseData) => {
         }
 
         // Update summary with new totals
+        const newAmountOwed = (currentSummary.totalAmountOwed || 0) + amountOwed
+        const newAmountReceivable = (currentSummary.totalAmountReceivable || 0) + amountReceivable
+        const newTotalBalance = newAmountReceivable - newAmountOwed
+        
         updates[`userSummaries/${String(userId)}`] = {
-          totalExpenseAmount: (currentSummary.totalExpenseAmount || 0) + expenseData.amount,
-          totalAmountOwed: (currentSummary.totalAmountOwed || 0) + amountOwed,
-          totalAmountReceivable: (currentSummary.totalAmountReceivable || 0) + amountReceivable,
+          totalBalance: newTotalBalance,
+          totalAmountOwed: newAmountOwed,
+          totalAmountReceivable: newAmountReceivable,
           lastUpdated: Date.now()
         }
 
@@ -71,9 +75,9 @@ export const updateAllUserSummaries = async (groupId, expenseData) => {
           amountOwed,
           amountReceivable,
           newTotal: {
-            totalExpenseAmount: updates[`userSummaries/${String(userId)}`].totalExpenseAmount,
-            totalAmountOwed: updates[`userSummaries/${String(userId)}`].totalAmountOwed,
-            totalAmountReceivable: updates[`userSummaries/${String(userId)}`].totalAmountReceivable
+            totalBalance: newTotalBalance,
+            totalAmountOwed: newAmountOwed,
+            totalAmountReceivable: newAmountReceivable
           }
         })
       } catch (userError) {
@@ -104,41 +108,35 @@ export const updateOwnerOverallSummary = async (ownerId) => {
 
     debugLog('Recalculating owner overall summary', { ownerId })
 
-    // Get all groups for the owner
-    const userGroupsRef = ref(rtdb, `users/${String(ownerId)}/groups`)
-    const userGroupsSnapshot = await get(userGroupsRef)
+    // Get user's own summary which is already aggregated
+    const userSummaryRef = ref(rtdb, `userSummaries/${String(ownerId)}`)
+    const userSummarySnapshot = await get(userSummaryRef)
 
     let totalGroupCount = 0
     let totalBalance = 0
-    let totalPendingAmount = 0
+
+    if (userSummarySnapshot.exists()) {
+      const userSummary = userSummarySnapshot.val()
+      totalBalance = userSummary.totalBalance || 0
+    }
+
+    // Get all groups for the owner to count them
+    const userGroupsRef = ref(rtdb, `users/${String(ownerId)}/groups`)
+    const userGroupsSnapshot = await get(userGroupsRef)
 
     if (userGroupsSnapshot.exists()) {
       const userGroups = userGroupsSnapshot.val()
       totalGroupCount = Object.keys(userGroups).length
-
-      // Aggregate summary data from all groups
-      const groupIds = Object.keys(userGroups)
-      for (const groupId of groupIds) {
-        const groupSummaryRef = ref(rtdb, `groups/${String(groupId)}/summary`)
-        const groupSummarySnapshot = await get(groupSummaryRef)
-        
-        if (groupSummarySnapshot.exists()) {
-          const groupSummary = groupSummarySnapshot.val()
-          totalBalance += groupSummary.totalBalance || 0
-          totalPendingAmount += groupSummary.totalPendingAmount || 0
-        }
-      }
     }
 
     // Update owner's overall summary using batch write
     const summaryData = {
       totalBalance,
       totalGroupCount,
-      totalPendingAmount,
       lastUpdated: Date.now()
     }
 
-    debugLog('Updating ownerSummaries with data', { ownerId, summaryData })
+    debugLog('Updating userSummaries with data', { ownerId, summaryData })
 
     await update(ref(rtdb), {
       [`userSummaries/${String(ownerId)}`]: summaryData
@@ -147,8 +145,7 @@ export const updateOwnerOverallSummary = async (ownerId) => {
     debugLog('Owner overall summary updated successfully', { 
       ownerId,
       totalGroupCount,
-      totalBalance,
-      totalPendingAmount
+      totalBalance
     })
   } catch (error) {
     debugError('Error updating owner overall summary', error)

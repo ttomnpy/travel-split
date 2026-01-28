@@ -286,7 +286,7 @@ function GroupSettingsPage({ onLogout }) {
               {isOwner ? (t('groupSettings.ownerOnly') || 'Only the group owner can modify these settings') : (t('groupSettings.adminCanEdit') || 'As an admin, you can modify these settings')}
             </p>
 
-            <div className="form-group">
+            <div className="gsp-form-group">
               <label htmlFor="groupName">{t('groupSettings.groupName') || 'Group Name'}</label>
               <input
                 id="groupName"
@@ -298,7 +298,7 @@ function GroupSettingsPage({ onLogout }) {
               />
             </div>
 
-            <div className="form-group">
+            <div className="gsp-form-group">
               <label htmlFor="currency">{t('groupSettings.currency') || 'Currency'}</label>
               <select
                 id="currency"
@@ -318,7 +318,7 @@ function GroupSettingsPage({ onLogout }) {
               </select>
             </div>
 
-            <div className="form-group">
+            <div className="gsp-form-group">
               <label htmlFor="description">{t('groupSettings.description') || 'Description'}</label>
               <textarea
                 id="description"
@@ -354,7 +354,7 @@ function GroupSettingsPage({ onLogout }) {
         <section className="settings-section member-settings">
           <h2 className="section-title">{t('groupSettings.memberSettings') || 'Your Settings in This Group'}</h2>
 
-          <div className="form-group">
+          <div className="gsp-form-group">
             <label htmlFor="memberName">{t('groupSettings.yourName') || 'Your Name in This Group'}</label>
             <input
               id="memberName"
@@ -364,7 +364,7 @@ function GroupSettingsPage({ onLogout }) {
               placeholder={t('groupSettings.enterName') || 'Enter your name'}
               disabled={isSavingMemberName}
             />
-            <p className="form-hint">
+            <p className="gsp-form-hint">
               {t('groupSettings.nameHint') || 'This name will be shown to other group members for expenses'}
             </p>
           </div>

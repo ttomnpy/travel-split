@@ -15,3 +15,5 @@ export { default as ConfirmationModal } from './ConfirmationModal/ConfirmationMo
 export { default as MemberManagement } from './MemberManagement/MemberManagement'
 export { default as AddExpenseModal } from './AddExpenseModal/AddExpenseModal'
 export { default as SettlementView } from './SettlementView/SettlementView'
+export { default as SettlementRecordModal } from './SettlementRecordModal/SettlementRecordModal'
+export { default as SettlementHistory } from './SettlementHistory/SettlementHistory'

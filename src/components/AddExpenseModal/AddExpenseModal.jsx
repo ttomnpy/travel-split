@@ -615,21 +615,31 @@ const AddExpenseModal = ({ isOpen, onClose, groupId, groupMembers, groupCurrency
           {/* Error Message */}
           {submitError && <div className="aem-error aem-error-block">{submitError}</div>}
 
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={isLoading || !isFormValid}
-            className="aem-submit-btn"
-          >
-            {isLoading ? (
-              <>
-                <BiLoader className="aem-loading-icon" />
-                {t('common.saving') || 'Saving...'}
-              </>
-            ) : (
-              t('addExpense.addExpense') || 'Add Expense'
-            )}
-          </button>
+          {/* Action Buttons */}
+          <div className="aem-action-buttons">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isLoading}
+              className="aem-cancel-btn"
+            >
+              {t('common.cancel') || 'Cancel'}
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading || !isFormValid}
+              className="aem-submit-btn"
+            >
+              {isLoading ? (
+                <>
+                  <BiLoader className="aem-loading-icon" />
+                  {t('common.saving') || 'Saving...'}
+                </>
+              ) : (
+                t('addExpense.addExpense') || 'Add Expense'
+              )}
+            </button>
+          </div>
         </form>
       </div>
     </div>
