@@ -195,7 +195,16 @@
     "complete": "完成設定",
     "completing": "完成中...",
     "success": "個人資料已更新",
-    "error": "更新個人資料失敗"
+    "error": "更新個人資料失敗",
+    "editProfile": "編輯個人資料",
+    "email": "電郵",
+    "emailReadOnly": "電郵不能更改",
+    "saveChanges": "保存變更",
+    "updating": "更新中...",
+    "resetPassword": "重設密碼",
+    "sendResetLink": "發送重設鏈接",
+    "sending": "發送中...",
+    "cancel": "取消"
   },
   "language": {
     "chinese": "繁體中文",

@@ -6,13 +6,13 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useTranslation } from '../../hooks/useTranslation'
 import { getDisplayName } from '../../utils/displayNameHelper'
 import { debugLog, debugError } from '../../utils/debug'
-import { Button, LoadingSpinner, HeaderControls, CreateGroupModal } from '../../components'
-import { BiMoney, BiPlus, BiLink, BiTrendingUp, BiX, BiChevronRight, BiWallet, BiGroup } from 'react-icons/bi'
+import { Button, LoadingSpinner, HeaderControls, CreateGroupModal, EditProfileModal } from '../../components'
+import { BiMoney, BiPlus, BiLink, BiTrendingUp, BiX, BiChevronRight, BiWallet, BiGroup, BiUser } from 'react-icons/bi'
 import './HomePage.css'
 
 function HomePage({ onLogout }) {
   const navigate = useNavigate()
-  const { user, userProfile } = useAuth()
+  const { user, userProfile, updateUserProfileData } = useAuth()
   const { t, setLanguage, currentLanguage } = useTranslation()
   
   const [userGroups, setUserGroups] = useState([])
@@ -21,6 +21,7 @@ function HomePage({ onLogout }) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false)
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false)
   const allExpensesRef = useRef({})
 
   useEffect(() => {
@@ -260,8 +261,20 @@ function HomePage({ onLogout }) {
         {/* Welcome Section */}
         <section className="welcome-section">
           <div className="welcome-card">
-            <p className="welcome-greeting">{t('home.welcome', { name: displayName })}</p>
-            <h2 className="welcome-title">{t('home.balanceTitle')}</h2>
+            <div className="welcome-content">
+              <div className="welcome-text">
+                <p className="welcome-greeting">{t('home.welcome', { name: displayName })}</p>
+                <h2 className="welcome-title">{t('home.balanceTitle')}</h2>
+              </div>
+              <button
+                className="edit-profile-btn"
+                onClick={() => setIsEditProfileModalOpen(true)}
+                aria-label={t('profile.editProfile') || 'Edit Profile'}
+                title={t('profile.editProfile') || 'Edit Profile'}
+              >
+                <BiUser />
+              </button>
+            </div>
           </div>
         </section>
 
@@ -427,16 +440,16 @@ function HomePage({ onLogout }) {
                   onClick={() => navigate(`/groups/${expense.groupId}`)}
                 >
                   <div className="activity-visual">
-                    <div className="activity-icon">{getCategoryEmoji(expense.cat)}</div>
+                    <div className="activity-icon">{getCategoryEmoji(expense.category)}</div>
                   </div>
                   <div className="activity-detail">
-                    <p className="activity-title">{expense.desc}</p>
+                    <p className="activity-title">{expense.description}</p>
                     <p className="activity-context">
                       {expense.groupName} • {formatDate(expense.date)}
                     </p>
                   </div>
                   <div className="activity-amount">
-                    {formatCurrency(expense.amt)}
+                    {formatCurrency(expense.amount)}
                   </div>
                 </div>
               ))}
@@ -461,6 +474,17 @@ function HomePage({ onLogout }) {
           displayName: getDisplayName(userProfile, user),
           email: user?.email || '',
           photo: user?.photoURL || null
+        }}
+      />
+
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        isOpen={isEditProfileModalOpen}
+        onClose={() => setIsEditProfileModalOpen(false)}
+        user={user}
+        userProfile={userProfile}
+        onProfileUpdated={(updatedProfile) => {
+          updateUserProfileData(updatedProfile)
         }}
       />
     </div>

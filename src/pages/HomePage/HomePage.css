@@ -203,6 +203,18 @@
   padding: 1rem 0;
 }
 
+.welcome-content {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.welcome-text {
+  flex: 1;
+  min-width: 0;
+}
+
 .welcome-greeting {
   font-size: 0.875rem;
   font-weight: 600;
@@ -216,6 +228,37 @@
   margin: 0;
   color: var(--text-primary);
   letter-spacing: -0.5px;
+}
+
+.edit-profile-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  background-color: var(--primary-accent);
+  border: none;
+  border-radius: var(--radius-lg);
+  color: #000;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  flex-shrink: 0;
+  margin-top: 0.25rem;
+}
+
+.edit-profile-btn:hover {
+  background-color: #ffc107;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.edit-profile-btn:active {
+  transform: translateY(0);
+}
+
+.edit-profile-btn svg {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 /* ========================================

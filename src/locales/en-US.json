@@ -195,7 +195,16 @@
     "complete": "Complete Setup",
     "completing": "Completing...",
     "success": "Profile updated successfully",
-    "error": "Failed to update profile"
+    "error": "Failed to update profile",
+    "editProfile": "Edit Profile",
+    "email": "Email",
+    "emailReadOnly": "Email cannot be changed",
+    "saveChanges": "Save Changes",
+    "updating": "Updating...",
+    "resetPassword": "Reset Password",
+    "sendResetLink": "Send Reset Link",
+    "sending": "Sending...",
+    "cancel": "Cancel"
   },
   "language": {
     "chinese": "繁體中文",
