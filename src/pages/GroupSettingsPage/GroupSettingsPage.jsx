@@ -116,11 +116,7 @@ function GroupSettingsPage({ onLogout }) {
         hasUpdates = true
       }
 
-      // Update currency
-      if (formData.currency && String(formData.currency).trim().length > 0) {
-        updates[`groups/${gId}/currency`] = String(formData.currency).trim()
-        hasUpdates = true
-      }
+      // Currency is locked and cannot be changed after group creation
 
       // Update description (always update if present)
       if (typeof formData.description === 'string' || typeof formData.description === 'undefined') {
@@ -304,7 +300,8 @@ function GroupSettingsPage({ onLogout }) {
                 id="currency"
                 value={formData.currency}
                 onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                disabled={isSavingSettings}
+                disabled={true}
+                title={t('groupSettings.currencyCannotChange') || 'Currency cannot be changed after group creation'}
               >
                 <option value="USD">USD - US Dollar</option>
                 <option value="EUR">EUR - Euro</option>
@@ -316,6 +313,7 @@ function GroupSettingsPage({ onLogout }) {
                 <option value="AUD">AUD - Australian Dollar</option>
                 <option value="CAD">CAD - Canadian Dollar</option>
               </select>
+              <small className="gsp-form-note">{t('groupSettings.currencyCannotChangeNote') || 'Currency is locked and cannot be modified after group creation'}</small>
             </div>
 
             <div className="gsp-form-group">

@@ -199,6 +199,10 @@ export const createExpense = async (groupId, expenseData, currentUserId) => {
       expense.currency = expenseData.currency
     }
 
+    if (expenseData.exchangeRate) {
+      expense.exchangeRate = expenseData.exchangeRate
+    }
+
     if (Object.keys(splitMeta).length > 0) {
       expense.splitMeta = splitMeta
     }

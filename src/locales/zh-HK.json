@@ -259,6 +259,8 @@
     "groupName": "群組名稱",
     "enterGroupName": "輸入群組名稱",
     "currency": "貨幣",
+    "currencyCannotChange": "群組建立後無法更改貨幣",
+    "currencyCannotChangeNote": "貨幣已鎖定，無法在群組建立後修改",
     "description": "描述",
     "enterDescription": "輸入群組描述",
     "memberSettings": "你在此群組中的設置",
@@ -313,7 +315,14 @@
     "participants": "參與者",
     "percentageTotal": "百分比總數",
     "exactTotal": "總金額",
-    "addExpense": "添加支出"
+    "addExpense": "添加支出",
+    "exchangeRate": "匯率",
+    "fetchLiveRate": "獲取實時匯率",
+    "liveRate": "✓ 實時匯率",
+    "rateInfo": "匯率",
+    "shares": "份額",
+    "exchangeRateRequired": "使用不同貨幣時需要輸入匯率",
+    "exchangeRateInvalid": "匯率必須是正數"
   },
   "expense": {
     "category": {
@@ -373,6 +382,7 @@
     "nameRequired": "行程名稱為必填項",
     "nameTooLong": "行程名稱不能超過 50 個字符",
     "descriptionTooLong": "描述不能超過 200 個字符",
+    "currencyWarning": "行程建立後無法更改貨幣。請仔細選擇。",
     "createSuccess": "行程建立成功！",
     "createError": "建立行程失敗。請重試。"
   }

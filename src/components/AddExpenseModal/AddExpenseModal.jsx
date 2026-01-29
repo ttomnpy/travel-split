@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { BiX, BiLoader, BiCalendar, BiMoney, BiUser, BiTag, BiShare } from 'react-icons/bi'
+import { BiX, BiLoader, BiCalendar, BiMoney, BiUser, BiTag, BiShare, BiRefresh } from 'react-icons/bi'
 import { useTranslation } from '../../hooks/useTranslation'
 import { debugLog, debugError } from '../../utils/debug'
 import { createExpense } from '../../services/expenseService'
+import { fetchLiveExchangeRate, validateExchangeRate, convertCurrency, formatExchangeRate } from '../../services/currencyService'
 import PayerSelection from './PayerSelection'
 import './AddExpenseModal.css'
 
@@ -46,6 +47,15 @@ const AddExpenseModal = ({ isOpen, onClose, groupId, groupMembers, groupCurrency
   const [submitError, setSubmitError] = useState(null)
   const [submitSuccess, setSubmitSuccess] = useState(false)
 
+  // Exchange rate state
+  const [exchangeRate, setExchangeRate] = useState({
+    manualRate: '',
+    fetchedRate: null,
+    source: 'custom', // 'custom' or 'live'
+    isFetching: false,
+    fetchError: null
+  })
+
   // Categories
   const categories = ['food', 'transport', 'accommodation', 'entertainment', 'shopping', 'other']
 
@@ -84,8 +94,8 @@ const AddExpenseModal = ({ isOpen, onClose, groupId, groupMembers, groupCurrency
       ...prev,
       [name]: type === 'number' ? (value === '' ? '' : parseFloat(value)) : value,
     }))
-    // Clear error when user starts typing
-    if (errors[name]) {
+    // Clear error when user starts typing (except for exchangeRate - handled separately)
+    if (errors[name] && name !== 'exchangeRate') {
       setErrors((prev) => ({
         ...prev,
         [name]: '',
@@ -120,6 +130,163 @@ const AddExpenseModal = ({ isOpen, onClose, groupId, groupMembers, groupCurrency
       },
     }))
   }
+
+  // Handle exchange rate manual input
+  const handleExchangeRateInput = (e) => {
+    const { value } = e.target
+    setExchangeRate((prev) => ({
+      ...prev,
+      manualRate: value,
+      source: 'custom',
+      fetchError: null
+    }))
+
+    // Real-time validation for exchange rate
+    setErrors((prev) => {
+      const newErrors = { ...prev }
+      if (value === '' || value === null) {
+        newErrors.exchangeRate = t('addExpense.exchangeRateRequired') || 'Exchange rate is required when using a different currency'
+      } else if (parseFloat(value) <= 0 || isNaN(parseFloat(value))) {
+        newErrors.exchangeRate = t('addExpense.exchangeRateInvalid') || 'Exchange rate must be a positive number'
+      } else {
+        delete newErrors.exchangeRate
+      }
+      return newErrors
+    })
+  }
+
+  // Fetch live exchange rate
+  const handleFetchLiveRate = async () => {
+    if (formData.currency === groupCurrency) {
+      debugLog('Same currency, no need to fetch rate')
+      return
+    }
+
+    setExchangeRate((prev) => ({
+      ...prev,
+      isFetching: true,
+      fetchError: null
+    }))
+
+    try {
+      const rate = await fetchLiveExchangeRate(formData.currency, groupCurrency)
+      if (rate) {
+        setExchangeRate((prev) => ({
+          ...prev,
+          fetchedRate: rate,
+          manualRate: formatExchangeRate(rate),
+          source: 'live',
+          isFetching: false
+        }))
+        // Clear exchange rate error when successful fetch
+        setErrors((prev) => {
+          const newErrors = { ...prev }
+          delete newErrors.exchangeRate
+          return newErrors
+        })
+        debugLog('Live rate fetched successfully', { rate })
+      } else {
+        setExchangeRate((prev) => ({
+          ...prev,
+          isFetching: false,
+          fetchError: 'Failed to fetch exchange rate. Please enter manually.'
+        }))
+        debugError('Failed to fetch live rate')
+      }
+    } catch (err) {
+      debugError('Error fetching live rate', err)
+      setExchangeRate((prev) => ({
+        ...prev,
+        isFetching: false,
+        fetchError: 'Error fetching rate. Please try again or enter manually.'
+      }))
+    }
+  }
+
+  // Get current exchange rate value
+  const getCurrentExchangeRate = () => {
+    // Check manual rate first
+    if (exchangeRate.manualRate) {
+      const validation = validateExchangeRate(exchangeRate.manualRate)
+      if (validation.valid) {
+        return validation.value
+      }
+    }
+    // Check fetched rate if available
+    if (exchangeRate.fetchedRate) {
+      const validation = validateExchangeRate(exchangeRate.fetchedRate)
+      if (validation.valid) {
+        return validation.value
+      }
+    }
+    return null
+  }
+
+  // Get converted amount (total in group currency)
+  const getConvertedAmount = () => {
+    const rate = getCurrentExchangeRate()
+    if (!rate || !formData.amount) return null
+    return convertCurrency(formData.amount, rate)
+  }
+
+  // Get participant amount in original currency
+  const getParticipantAmountInOriginalCurrency = (memberId) => {
+    const selectedParticipants = Object.keys(formData.participants).filter(
+      (pid) => formData.participants[pid]?.selected
+    )
+    const amount = formData.amount || 0
+
+    if (formData.splitMethod === 'equal') {
+      return amount / selectedParticipants.length
+    } else if (formData.splitMethod === 'percentage') {
+      return (amount * (formData.participants[memberId].percentage || 0)) / 100
+    } else if (formData.splitMethod === 'shares') {
+      const totalShares = selectedParticipants.reduce(
+        (sum, pid) => sum + (formData.participants[pid].shares || 1),
+        0
+      )
+      return (amount * (formData.participants[memberId].shares || 1)) / (totalShares || 1)
+    } else if (formData.splitMethod === 'exact') {
+      return formData.participants[memberId].amount || 0
+    }
+    return 0
+  }
+
+  // Get participant amount in group currency
+  const getParticipantAmountInGroupCurrency = (memberId) => {
+    const originalAmount = getParticipantAmountInOriginalCurrency(memberId)
+    if (formData.currency === groupCurrency) {
+      return originalAmount
+    }
+    const rate = getCurrentExchangeRate()
+    if (!rate) return originalAmount
+    return convertCurrency(originalAmount, rate)
+  }
+
+  // Reset exchange rate when currency changes
+  useEffect(() => {
+    if (formData.currency === groupCurrency) {
+      // Same currency: clear exchange rate state and error
+      setExchangeRate({
+        manualRate: '',
+        fetchedRate: null,
+        source: 'custom',
+        isFetching: false,
+        fetchError: null
+      })
+      setErrors((prev) => {
+        const newErrors = { ...prev }
+        delete newErrors.exchangeRate
+        return newErrors
+      })
+    } else {
+      // Different currency: show exchange rate required error
+      setErrors((prev) => ({
+        ...prev,
+        exchangeRate: t('addExpense.exchangeRateRequired') || 'Exchange rate is required when using a different currency'
+      }))
+    }
+  }, [formData.currency, groupCurrency])
 
   // Validate form
   const validateForm = () => {
@@ -173,6 +340,16 @@ const AddExpenseModal = ({ isOpen, onClose, groupId, groupMembers, groupCurrency
       }
     }
 
+    // Validate exchange rate if currency differs from group currency
+    if (formData.currency !== groupCurrency) {
+      const hasRate = getCurrentExchangeRate()
+      if (!hasRate) {
+        newErrors.exchangeRate = t('addExpense.exchangeRateRequired') || 'Exchange rate is required when using a different currency'
+      } else if (getCurrentExchangeRate() <= 0) {
+        newErrors.exchangeRate = t('addExpense.exchangeRateInvalid') || 'Exchange rate must be a positive number'
+      }
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -188,7 +365,23 @@ const AddExpenseModal = ({ isOpen, onClose, groupId, groupMembers, groupCurrency
     setSubmitSuccess(false)
 
     try {
+      // Get exchange rate if currency differs
+      const hasExchangeRate = formData.currency !== groupCurrency
+      const rate = hasExchangeRate ? getCurrentExchangeRate() : 1
+      const amountInGroupCurrency = hasExchangeRate ? convertCurrency(formData.amount, rate) : formData.amount
+
+      // Convert payers amounts to group currency
+      const payersInGroupCurrency = {}
+      Object.entries(formData.payers).forEach(([payerId, payer]) => {
+        const payerAmountInGroupCurrency = hasExchangeRate ? convertCurrency(payer.amount, rate) : payer.amount
+        payersInGroupCurrency[payerId] = {
+          ...payer,
+          amount: payerAmountInGroupCurrency
+        }
+      })
+
       // Prepare split details based on split method
+      // Important: Store amounts in GROUP CURRENCY for settlement calculations
       const splitDetails = {}
       selectedParticipants.forEach((participantId) => {
         if (formData.splitMethod === 'equal') {
@@ -198,23 +391,43 @@ const AddExpenseModal = ({ isOpen, onClose, groupId, groupMembers, groupCurrency
         } else if (formData.splitMethod === 'shares') {
           splitDetails[participantId] = { shares: formData.participants[participantId].shares || 1 }
         } else if (formData.splitMethod === 'exact') {
-          splitDetails[participantId] = { amount: formData.participants[participantId].amount || 0 }
+          // Convert exact amount to group currency if needed
+          const originalAmount = formData.participants[participantId].amount || 0
+          const amountToStore = hasExchangeRate ? convertCurrency(originalAmount, rate) : originalAmount
+          splitDetails[participantId] = { amount: amountToStore }
         }
       })
 
       // Call service to create expense
-      await createExpense(groupId, {
-        amount: formData.amount,
-        payers: formData.payers,
+      const expenseData = {
+        // Store amount in group currency for easier calculation
+        amount: amountInGroupCurrency,
+        amountInOriginalCurrency: formData.amount, // Reference only
+        payers: payersInGroupCurrency,
         participants: selectedParticipants,
         splitMethod: formData.splitMethod,
         splitDetails,
         description: formData.description,
         category: formData.category,
-        currency: formData.currency,
+        currency: groupCurrency, // All amounts stored in group currency
+        originalCurrency: formData.currency, // Reference to original currency
         date: formData.date,
         location: formData.location,
-      }, currentUserId)
+      }
+
+      // Add exchange rate if currency differs from group currency
+      if (hasExchangeRate && rate) {
+        expenseData.exchangeRate = {
+          fromCurrency: formData.currency,
+          toCurrency: groupCurrency,
+          rate,
+          amountInGroupCurrency: amountInGroupCurrency,
+          source: exchangeRate.source,
+          date: Date.now()
+        }
+      }
+
+      await createExpense(groupId, expenseData, currentUserId)
 
       setSubmitSuccess(true)
       setTimeout(() => {
@@ -265,6 +478,15 @@ const AddExpenseModal = ({ isOpen, onClose, groupId, groupMembers, groupCurrency
     Object.keys(formData.payers || {}).length > 0
   )
 
+  // Check for exchange rate validation
+  let hasExchangeRateError = false
+  if (formData.currency !== groupCurrency) {
+    const hasRate = getCurrentExchangeRate()
+    if (!hasRate) {
+      hasExchangeRateError = true
+    }
+  }
+
   // Check for validation errors in payers
   let hasPayersError = false
   if (formData.payerMode === 'multiple' && formData.amount) {
@@ -303,7 +525,7 @@ const AddExpenseModal = ({ isOpen, onClose, groupId, groupMembers, groupCurrency
     }
   }
 
-  const isFormValid = isBasicFormValid && !hasExactSplitError && !hasPercentageSplitError && !hasPayersError
+  const isFormValid = isBasicFormValid && !hasExactSplitError && !hasPercentageSplitError && !hasPayersError && !hasExchangeRateError
 
   const handlePayerModeChange = (newMode) => {
     setFormData((prev) => ({
@@ -368,6 +590,77 @@ const AddExpenseModal = ({ isOpen, onClose, groupId, groupMembers, groupCurrency
                   </select>
                 </div>
                 {errors.amount && <span className="aem-error">{errors.amount}</span>}
+
+                {/* Currency Conversion Section */}
+                {formData.currency !== groupCurrency && (
+                  <div className="aem-exchange-rate-section">
+                    <div className="aem-exchange-rate-label">
+                      {t('addExpense.exchangeRate') || 'Exchange Rate'} ({formData.currency} → {groupCurrency})
+                      <span className="aem-required">*</span>
+                    </div>
+
+                    <div className="aem-exchange-rate-input-group">
+                      <input
+                        type="number"
+                        placeholder="Enter rate"
+                        value={exchangeRate.manualRate}
+                        onChange={handleExchangeRateInput}
+                        className={`aem-exchange-rate-input ${errors.exchangeRate ? 'aem-input-error' : ''}`}
+                        step="0.0001"
+                        min="0"
+                      />
+                      <button
+                        type="button"
+                        className="aem-fetch-rate-btn"
+                        onClick={handleFetchLiveRate}
+                        disabled={exchangeRate.isFetching}
+                        title={t('addExpense.fetchLiveRate') || 'Fetch live rate'}
+                      >
+                        {exchangeRate.isFetching ? (
+                          <BiLoader className="aem-spinner" />
+                        ) : (
+                          <BiRefresh />
+                        )}
+                        {exchangeRate.isFetching ? 'Fetching...' : 'Fetch'}
+                      </button>
+                    </div>
+
+                    {exchangeRate.fetchError && (
+                      <div className="aem-exchange-rate-error">
+                        {exchangeRate.fetchError}
+                      </div>
+                    )}
+
+                    {errors.exchangeRate && (
+                      <div className="aem-exchange-rate-error">
+                        {errors.exchangeRate}
+                      </div>
+                    )}
+
+                    {exchangeRate.source === 'live' && (
+                      <div className="aem-exchange-rate-source">
+                        {t('addExpense.liveRate') || '✓ Live rate'} • {new Date(exchangeRate.fetchedRate ? Date.now() : 0).toLocaleTimeString()}
+                      </div>
+                    )}
+
+                    {getCurrentExchangeRate() && getConvertedAmount() && (
+                      <div className="aem-exchange-rate-result">
+                        <div className="aem-exchange-rate-row">
+                          <span className="aem-exchange-rate-from">
+                            {formData.amount} {formData.currency}
+                          </span>
+                          <span className="aem-exchange-rate-equals">=</span>
+                          <span className="aem-exchange-rate-to">
+                            {getConvertedAmount()} {groupCurrency}
+                          </span>
+                        </div>
+                        <div className="aem-exchange-rate-info">
+                          {t('addExpense.rateInfo') || 'Rate'}: 1 {formData.currency} = {formatExchangeRate(getCurrentExchangeRate())} {groupCurrency}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -536,28 +829,45 @@ const AddExpenseModal = ({ isOpen, onClose, groupId, groupMembers, groupCurrency
                   {formData.participants[memberId]?.selected && (
                     <div className="aem-participant-input">
                       {formData.splitMethod === 'equal' && (
-                        <span className="aem-split-value">
-                          {(formData.amount / selectedParticipants.length).toFixed(2)} {formData.currency}
-                        </span>
+                        <>
+                          {formData.currency !== groupCurrency && (
+                            <span className="aem-split-value">
+                              {(formData.amount / selectedParticipants.length).toFixed(2)} {formData.currency}
+                            </span>
+                          )}
+                          <span className="aem-split-value-converted">
+                            {getParticipantAmountInGroupCurrency(memberId).toFixed(2)} {groupCurrency}
+                          </span>
+                        </>
                       )}
 
                       {formData.splitMethod === 'percentage' && (() => {
                         const previewAmount = (formData.amount * (formData.participants[memberId].percentage || 0)) / 100
+                        const previewAmountInGroupCurrency = getParticipantAmountInGroupCurrency(memberId)
                         return (
                           <>
-                            <input
-                              type="number"
-                              inputMode="decimal"
-                              min="0"
-                              max="100"
-                              step="0.01"
-                              value={formData.participants[memberId].percentage || ''}
-                              onChange={(e) => handleParticipantAmountChange(memberId, e.target.value, 'percentage')}
-                              className="aem-input aem-input-small"
-                              placeholder="0"
-                            />
-                            <span className="aem-split-value aem-preview-amount">
-                              {previewAmount.toFixed(2)} {formData.currency}
+                            <div className="aem-input-wrapper">
+                              <input
+                                type="number"
+                                inputMode="decimal"
+                                min="0"
+                                max="100"
+                                step="0.01"
+                                value={formData.participants[memberId].percentage || ''}
+                                onChange={(e) => handleParticipantAmountChange(memberId, e.target.value, 'percentage')}
+                                className="aem-input aem-input-small"
+                                placeholder="0"
+                                title="Percentage"
+                              />
+                              <span className="aem-input-unit">%</span>
+                            </div>
+                            {formData.currency !== groupCurrency && (
+                              <span className="aem-split-value">
+                                {previewAmount.toFixed(2)} {formData.currency}
+                              </span>
+                            )}
+                            <span className="aem-split-value-converted">
+                              {previewAmountInGroupCurrency.toFixed(2)} {groupCurrency}
                             </span>
                           </>
                         )
@@ -566,20 +876,30 @@ const AddExpenseModal = ({ isOpen, onClose, groupId, groupMembers, groupCurrency
                       {formData.splitMethod === 'shares' && (() => {
                         const totalShares = Object.keys(formData.participants).filter(pId => formData.participants[pId]?.selected).reduce((sum, pId) => sum + (formData.participants[pId].shares || 1), 0)
                         const previewAmount = (formData.amount * (formData.participants[memberId].shares || 1)) / (totalShares || 1)
+                        const previewAmountInGroupCurrency = getParticipantAmountInGroupCurrency(memberId)
                         return (
                           <>
-                            <input
-                              type="number"
-                              inputMode="decimal"
-                              min="0"
-                              step="0.01"
-                              value={formData.participants[memberId].shares || ''}
-                              onChange={(e) => handleParticipantAmountChange(memberId, e.target.value, 'shares')}
-                              className="aem-input aem-input-small"
-                              placeholder="1"
-                            />
-                            <span className="aem-split-value aem-preview-amount">
-                              {previewAmount.toFixed(2)} {formData.currency}
+                            <div className="aem-input-wrapper">
+                              <input
+                                type="number"
+                                inputMode="decimal"
+                                min="0"
+                                step="0.01"
+                                value={formData.participants[memberId].shares || ''}
+                                onChange={(e) => handleParticipantAmountChange(memberId, e.target.value, 'shares')}
+                                className="aem-input aem-input-small"
+                                placeholder="1"
+                                title={`Shares (input in ${formData.currency})`}
+                              />
+                              <span className="aem-input-unit">{t('addExpense.shares') || 'shares'}</span>
+                            </div>
+                            {formData.currency !== groupCurrency && (
+                              <span className="aem-split-value">
+                                {previewAmount.toFixed(2)} {formData.currency}
+                              </span>
+                            )}
+                            <span className="aem-split-value-converted">
+                              {previewAmountInGroupCurrency.toFixed(2)} {groupCurrency}
                             </span>
                           </>
                         )
@@ -587,20 +907,30 @@ const AddExpenseModal = ({ isOpen, onClose, groupId, groupMembers, groupCurrency
 
                       {formData.splitMethod === 'exact' && (() => {
                         const previewAmount = formData.participants[memberId].amount || 0
+                        const previewAmountInGroupCurrency = getParticipantAmountInGroupCurrency(memberId)
                         return (
                           <>
-                            <input
-                              type="number"
-                              inputMode="decimal"
-                              min="0"
-                              step="0.01"
-                              value={previewAmount === 0 ? '' : previewAmount}
-                              onChange={(e) => handleParticipantAmountChange(memberId, e.target.value, 'amount')}
-                              className="aem-input aem-input-small"
-                              placeholder="0.00"
-                            />
-                            <span className="aem-split-value aem-preview-amount">
-                              {previewAmount.toFixed(2)} {formData.currency}
+                            <div className="aem-input-wrapper">
+                              <input
+                                type="number"
+                                inputMode="decimal"
+                                min="0"
+                                step="0.01"
+                                value={previewAmount === 0 ? '' : previewAmount}
+                                onChange={(e) => handleParticipantAmountChange(memberId, e.target.value, 'amount')}
+                                className="aem-input aem-input-small"
+                                placeholder="0.00"
+                                title={`Exact amount (input in ${formData.currency})`}
+                              />
+                              <span className="aem-input-unit">{formData.currency}</span>
+                            </div>
+                            {formData.currency !== groupCurrency && (
+                              <span className="aem-split-value">
+                                {previewAmount.toFixed(2)} {formData.currency}
+                              </span>
+                            )}
+                            <span className="aem-split-value-converted">
+                              {previewAmountInGroupCurrency.toFixed(2)} {groupCurrency}
                             </span>
                           </>
                         )

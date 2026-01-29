@@ -259,6 +259,8 @@
     "groupName": "Group Name",
     "enterGroupName": "Enter group name",
     "currency": "Currency",
+    "currencyCannotChange": "Currency cannot be changed after group creation",
+    "currencyCannotChangeNote": "Currency is locked and cannot be modified after group creation",
     "description": "Description",
     "enterDescription": "Enter group description",
     "memberSettings": "Your Settings in This Group",
@@ -313,7 +315,14 @@
     "participants": "Participants",
     "percentageTotal": "Percentage Total",
     "exactTotal": "Total",
-    "addExpense": "Add Expense"
+    "addExpense": "Add Expense",
+    "exchangeRate": "Exchange Rate",
+    "fetchLiveRate": "Fetch live rate",
+    "liveRate": "✓ Live rate",
+    "rateInfo": "Rate",
+    "shares": "shares",
+    "exchangeRateRequired": "Exchange rate is required when using a different currency",
+    "exchangeRateInvalid": "Exchange rate must be a positive number"
   },
   "expense": {
     "category": {
@@ -373,6 +382,7 @@
     "nameRequired": "Trip name is required",
     "nameTooLong": "Trip name must be less than 50 characters",
     "descriptionTooLong": "Description must be less than 200 characters",
+    "currencyWarning": "Currency cannot be changed after group creation. Please choose carefully.",
     "createSuccess": "Trip created successfully!",
     "createError": "Failed to create trip. Please try again."
   }

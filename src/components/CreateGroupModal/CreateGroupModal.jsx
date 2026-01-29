@@ -208,6 +208,9 @@ const CreateGroupModal = ({ isOpen, onClose, onGroupCreated, userId, userData })
                 </option>
               ))}
             </select>
+            <small className="cgm-form-note" style={{ color: '#FFC107', marginTop: '6px', display: 'block' }}>
+              ⚠️ {t('createGroup.currencyWarning') || 'Currency cannot be changed after group creation. Please choose carefully.'}
+            </small>
           </div>
 
           <div className="cgm-actions">
