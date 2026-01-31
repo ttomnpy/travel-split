@@ -7,6 +7,21 @@ import { debugLog, debugWarn, debugError } from '../utils/debug'
 
 const AuthContext = createContext(null)
 
+// Global flag to prevent duplicate getRedirectResult calls (React StrictMode issue)
+let redirectResultChecked = false
+let redirectResultPromise = null
+
+// Reset the flag when page loads with OAuth redirect parameters
+if (typeof window !== 'undefined') {
+  const urlParams = new URLSearchParams(window.location.search)
+  // Check for OAuth redirect indicators
+  if (urlParams.has('state') || urlParams.has('code')) {
+    console.log('🔄 OAuth redirect detected - resetting redirect check flag')
+    redirectResultChecked = false
+    redirectResultPromise = null
+  }
+}
+
 function useAuth() {
   const context = useContext(AuthContext)
   if (!context) {
@@ -23,25 +38,40 @@ export function AuthProvider({ children }) {
   const [isNewUser, setIsNewUser] = useState(null) 
   useEffect(() => {
     let unsubscribe
+    let isMounted = true
 
     const initializeAuth = async () => {
       try {
+        // Use global promise to ensure getRedirectResult is only called once
+        if (!redirectResultChecked) {
+          debugLog('Checking for Google Redirect Result', null)
+          redirectResultPromise = getRedirectResult(auth)
+          redirectResultChecked = true
+        } else {
+          debugLog('Skipping duplicate redirect check', null)
+        }
 
-        debugLog('Checking for Google Redirect Result', null)
-        const result = await getRedirectResult(auth)
+        const result = await redirectResultPromise
+        
+        if (!isMounted) return
+
         if (result?.user) {
-          debugLog('Google Redirect Result Received', { email: result.user.email })
+          debugLog('Google Redirect Result Received', { 
+            email: result.user.email,
+            uid: result.user.uid,
+            provider: result.providerId
+          })
+        } else {
+          debugLog('No pending redirect result', null)
         }
       } catch (err) {
-        if (err.code !== 'auth/no-auth-event-pending') {
+        if (isMounted && err.code !== 'auth/no-auth-event-pending') {
           debugError('Error Getting Redirect Result', err.message)
         }
       }
 
-
-      await new Promise(resolve => setTimeout(resolve, 100))
-
       unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+        if (!isMounted) return
         debugLog('Auth State Changed', { 
           currentUser: currentUser?.email, 
           emailVerified: currentUser?.emailVerified 
@@ -98,6 +128,7 @@ export function AuthProvider({ children }) {
     initializeAuth()
 
     return () => {
+      isMounted = false
       if (unsubscribe) unsubscribe()
     }
   }, [])

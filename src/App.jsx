@@ -3,9 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { LoadingSpinner } from './components'
 import { LoginPage, HomePage, UserProfileSetupPage, GroupDetailPage, GroupSettingsPage, JoinGroupPage } from './pages'
-import { getRedirectResult } from 'firebase/auth'
-import { auth } from './firebase'
-import { debugLog, debugError } from './utils/debug'
+import { debugLog } from './utils/debug'
 import './styles/global.css'
 
 function AppContent() {
@@ -54,24 +52,6 @@ function AppContent() {
 }
 
 function App() {
-  useEffect(() => {
-    const checkRedirectResult = async () => {
-      try {
-        debugLog('App Level: Checking for OAuth redirect result', null)
-        const result = await getRedirectResult(auth)
-        if (result?.user) {
-          debugLog('App Level: OAuth redirect result received', { email: result.user.email })
-        }
-      } catch (err) {
-        if (err.code !== 'auth/no-auth-event-pending') {
-          debugError('App Level: OAuth redirect error', { code: err.code })
-        }
-      }
-    }
-
-    checkRedirectResult()
-  }, [])
-
   return (
     <BrowserRouter>
       <AuthProvider>
