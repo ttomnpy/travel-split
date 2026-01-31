@@ -26,11 +26,15 @@ export const storage = getStorage(app)
 export const googleProvider = new GoogleAuthProvider()
 
 // Set persistence to LOCAL so users stay logged in
-setPersistence(auth, browserLocalPersistence).catch((error) => {
-  debugError('Error setting persistence', error)
-})
+setPersistence(auth, browserLocalPersistence)
+  .then(() => {
+    // Persistence set
+  })
+  .catch((error) => {
+    debugError('Error setting persistence', error)
+  })
 
-// Configure Google provider to always show account selection
+// Configure Google provider
 googleProvider.setCustomParameters({
   prompt: 'select_account'
 })

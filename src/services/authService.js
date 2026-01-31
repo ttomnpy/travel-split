@@ -150,36 +150,32 @@ export const authService = {
   // Google Sign In - handles both desktop (popup) and mobile (redirect)
   loginWithGoogle: async () => {
     try {
-      // Detect if running on mobile
-      const isMobile = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      // Improved mobile detection
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                       window.innerWidth < 768
       
-      debugLog('Google Sign In Attempt', { isMobile, userAgent: navigator.userAgent })
+      debugLog('Google Sign In Attempt', { isMobile, windowWidth: window.innerWidth })
       
       if (isMobile) {
         // Use redirect for mobile devices
         try {
-          debugLog('Initiating Google Redirect for Mobile', { provider: 'Google' })
+          debugLog('Initiating Google Redirect', null)
           await signInWithRedirect(auth, googleProvider)
-          // This will cause a page redirect, so we return immediately
-          debugLog('signInWithRedirect executed, page should redirect now', null)
+          // This will cause a page redirect, so we return a neutral state
           return { user: null, error: null, message: 'redirect' }
         } catch (redirectError) {
-          debugError('Redirect Error', { code: redirectError.code, message: redirectError.message })
+          debugError('Google Redirect Error', { code: redirectError.code, message: redirectError.message })
           return { user: null, error: redirectError.code, message: null }
         }
       } else {
         // Use popup for desktop browsers
         try {
-          debugLog('Initiating Google Popup for Desktop', { provider: 'Google' })
+          debugLog('Initiating Google Popup', null)
           const result = await signInWithPopup(auth, googleProvider)
           debugLog('Google Popup Sign In Success', { email: result.user.email })
-          
-          // User registration will be handled by AuthContext's onAuthStateChanged
-          // No need to call registerUser here
-          
           return { user: result.user, error: null, message: null }
         } catch (popupError) {
-          debugError('Popup Error', { code: popupError.code, message: popupError.message })
+          debugError('Google Popup Error', { code: popupError.code, message: popupError.message })
           if (popupError.code === 'auth/popup-closed-by-user') {
             return { user: null, error: 'popup-closed', message: null }
           }
