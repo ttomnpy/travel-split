@@ -24,7 +24,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-.github
+.github/skills
+.github/prompts
 .shared
 
 *.md
