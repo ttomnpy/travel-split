@@ -26,8 +26,7 @@ export function AuthProvider({ children }) {
 
     const initializeAuth = async () => {
       try {
-        // 1. Check for redirect result BEFORE anything else
-        // This is crucial for mobile OAuth redirect flow to ensure the state is processed
+
         debugLog('Checking for Google Redirect Result', null)
         const result = await getRedirectResult(auth)
         if (result?.user) {
@@ -39,7 +38,9 @@ export function AuthProvider({ children }) {
         }
       }
 
-      // 2. Set up the auth state listener
+
+      await new Promise(resolve => setTimeout(resolve, 100))
+
       unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
         debugLog('Auth State Changed', { 
           currentUser: currentUser?.email, 
