@@ -159,8 +159,10 @@ export const authService = {
       if (isMobile) {
         // Use redirect for mobile devices
         try {
-          debugLog('Initiating Google Redirect', null)
+          debugLog('Initiating Google Redirect for Mobile', null)
+          
           await signInWithRedirect(auth, googleProvider)
+          
           // This will cause a page redirect, so we return a neutral state
           return { user: null, error: null, message: 'redirect' }
         } catch (redirectError) {
@@ -170,7 +172,7 @@ export const authService = {
       } else {
         // Use popup for desktop browsers
         try {
-          debugLog('Initiating Google Popup', null)
+          debugLog('Initiating Google Popup for Desktop', null)
           const result = await signInWithPopup(auth, googleProvider)
           debugLog('Google Popup Sign In Success', { email: result.user.email })
           return { user: result.user, error: null, message: null }

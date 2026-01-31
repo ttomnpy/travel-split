@@ -29,3 +29,7 @@ dist-ssr
 
 *.md
 !README.md
+
+# firebase files
+.firebase/
+firebase-debug.log
