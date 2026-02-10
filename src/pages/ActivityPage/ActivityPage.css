@@ -1,0 +1,504 @@
+/* ========================================
+   ActivityPage - Dark Theme Mobile-First Design
+   Full activity history for all groups
+   ======================================== */
+
+.activity-history-page-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
+  overflow-x: hidden;
+}
+
+/* ========================================
+   Header Section
+   ======================================== */
+
+.activity-history-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background-color: var(--bg-dark);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0.75rem 1rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.activity-history-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.history-back-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--primary-accent);
+  font-size: 1.5rem;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.history-back-button:hover {
+  background-color: rgba(255, 191, 0, 0.1);
+  color: var(--primary-accent-light);
+}
+
+.history-back-button:active {
+  transform: scale(0.95);
+}
+
+.activity-history-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+  flex: 1;
+}
+
+/* ========================================
+   Main Content
+   ======================================== */
+
+.activity-history-main {
+  flex: 1;
+  padding: 1.5rem 1rem;
+  overflow-y: auto;
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ========================================
+   Filters & Sort Controls
+   ======================================== */
+
+.activity-history-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.filter-group,
+.sort-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-group label,
+.sort-group label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.filter-select,
+.sort-select {
+  padding: 0.75rem 1rem;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23FFB F00' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2.5rem;
+}
+
+.filter-select:hover,
+.sort-select:hover {
+  border-color: var(--primary-accent);
+  background-color: rgba(255, 191, 0, 0.05);
+}
+
+.filter-select:focus,
+.sort-select:focus {
+  outline: none;
+  border-color: var(--primary-accent);
+  box-shadow: 0 0 0 3px rgba(255, 191, 0, 0.1);
+}
+
+.filter-select option,
+.sort-select option {
+  background-color: var(--bg-darker);
+  color: var(--text-primary);
+  padding: 0.5rem;
+}
+
+/* ========================================
+   Activity List
+   ======================================== */
+
+.activity-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.activity-history-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.activity-history-card:hover {
+  background-color: rgba(255, 191, 0, 0.05);
+  border-color: var(--primary-accent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 191, 0, 0.1);
+}
+
+.activity-history-card:focus-visible {
+  outline: 2px solid var(--primary-accent);
+  outline-offset: 2px;
+}
+
+.history-card-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.history-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  min-width: 2.5rem;
+  background-color: rgba(255, 191, 0, 0.1);
+  border-radius: var(--radius-md);
+  font-size: 1.25rem;
+}
+
+.history-card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.history-card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-card-meta {
+  font-size: 0.875rem;
+  color: var(--text-tertiary);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-card-amount {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--primary-accent);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ========================================
+   Empty State
+   ======================================== */
+
+.activity-history-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 3.5rem;
+  margin-bottom: 1rem;
+}
+
+.activity-history-empty h2 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.activity-history-empty p {
+  font-size: 1rem;
+  color: var(--text-tertiary);
+  margin-bottom: 2rem;
+  max-width: 300px;
+}
+
+.empty-cta {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, var(--primary-accent) 0%, var(--primary-accent-light) 100%);
+  color: #000;
+  border: none;
+  border-radius: var(--radius-lg);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.empty-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 191, 0, 0.3);
+}
+
+.empty-cta:active {
+  transform: translateY(0);
+}
+
+/* ========================================
+   Footer & Results
+   ======================================== */
+
+.activity-history-footer {
+  padding: 1rem;
+  text-align: center;
+  background-color: rgba(255, 191, 0, 0.05);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+}
+
+.result-count {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.activity-history-error {
+  padding: 1rem;
+  background-color: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: var(--radius-lg);
+  color: #ff9999;
+  margin-bottom: 1.5rem;
+}
+
+.activity-history-error p {
+  margin: 0;
+  color: #ff9999;
+}
+
+/* ========================================
+   Responsive Design - Mobile First
+   ======================================== */
+
+/* Base: 375px - 479px (Small phones) */
+@media (max-width: 479px) {
+  .activity-history-header {
+    padding: 0.625rem 0.75rem;
+  }
+
+  .activity-history-title {
+    font-size: 1.25rem;
+  }
+
+  .activity-history-main {
+    padding: 1rem 0.75rem;
+  }
+
+  .activity-history-controls {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .activity-history-card {
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+
+  .history-card-title {
+    font-size: 0.95rem;
+  }
+
+  .history-card-amount {
+    font-size: 1rem;
+  }
+
+  .activity-history-empty {
+    padding: 2rem 1rem;
+  }
+
+  .empty-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .activity-history-empty h2 {
+    font-size: 1.25rem;
+  }
+
+  .activity-history-empty p {
+    font-size: 0.875rem;
+  }
+}
+
+/* Medium: 480px - 639px (Large phones) */
+@media (min-width: 480px) and (max-width: 639px) {
+  .activity-history-title {
+    font-size: 1.375rem;
+  }
+
+  .activity-history-main {
+    padding: 1.25rem 1rem;
+  }
+
+  .activity-history-controls {
+    gap: 0.875rem;
+  }
+
+  .activity-history-card {
+    padding: 0.875rem;
+  }
+
+  .history-card-icon {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+}
+
+/* Tablet: 640px - 767px */
+@media (min-width: 640px) and (max-width: 767px) {
+  .activity-history-main {
+    max-width: 100%;
+    padding: 1.5rem;
+  }
+
+  .activity-history-controls {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .activity-history-card {
+    padding: 1rem;
+  }
+}
+
+/* Large tablet: 768px - 1023px */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .activity-history-main {
+    max-width: 90%;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+
+  .activity-history-controls {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+  }
+
+  .activity-history-list {
+    gap: 1rem;
+  }
+
+  .activity-history-card {
+    padding: 1.25rem;
+  }
+
+  .activity-history-title {
+    font-size: 1.75rem;
+  }
+}
+
+/* Desktop: 1024px + */
+@media (min-width: 1024px) {
+  .activity-history-main {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  .activity-history-controls {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+
+  .activity-history-list {
+    gap: 1rem;
+  }
+
+  .activity-history-card {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .activity-history-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(255, 191, 0, 0.15);
+  }
+
+  .activity-history-title {
+    font-size: 2rem;
+  }
+
+  .activity-history-empty {
+    min-height: 500px;
+  }
+}
+
+/* XL Desktop: 1440px + */
+@media (min-width: 1440px) {
+  .activity-history-main {
+    max-width: 1200px;
+    padding: 2.5rem;
+  }
+
+  .activity-history-controls {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+
+  .filter-select,
+  .sort-select {
+    padding: 0.875rem 1.25rem;
+    font-size: 1.0625rem;
+  }
+
+  .activity-history-card {
+    padding: 1.5rem 2rem;
+  }
+
+  .activity-history-title {
+    font-size: 2.25rem;
+  }
+}

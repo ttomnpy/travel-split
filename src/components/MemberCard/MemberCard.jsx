@@ -2,7 +2,7 @@ import { BiCheck, BiHourglass, BiCrown, BiStar } from 'react-icons/bi'
 import { useState, useRef, useEffect } from 'react'
 import './MemberCard.css'
 
-function MemberCard({ member, memberId, isOwner, isCurrentUser }) {
+function MemberCard({ member, isOwner, isCurrentUser }) {
   const [shouldTruncate, setShouldTruncate] = useState(false)
   const emailRef = useRef(null)
 

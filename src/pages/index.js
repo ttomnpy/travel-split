@@ -4,3 +4,4 @@ export { UserProfileSetupPage } from './UserProfileSetupPage/UserProfileSetupPag
 export { default as GroupDetailPage } from './GroupDetailPage/GroupDetailPage'
 export { default as GroupSettingsPage } from './GroupSettingsPage/GroupSettingsPage'
 export { default as JoinGroupPage } from './JoinGroupPage/JoinGroupPage'
+export { default as ActivityPage } from './ActivityPage/ActivityPage'

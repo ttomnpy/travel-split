@@ -198,7 +198,7 @@ export const userService = {
    * @param {Object} groupInfo - Group information to store
    * @returns {Promise<{error: null|string}>}
    */
-  addGroupToUser: async (userId, groupId, groupInfo) => {
+  addGroupToUser: async (userId, groupId) => {
     try {
       if (!userId || !groupId) {
         throw new Error('User ID and Group ID are required')
@@ -209,14 +209,8 @@ export const userService = {
       const groupRefPath = `users/${userId}/groups/${groupId}`
       const groupRef = ref(db, groupRefPath)
 
-      const groupData = {
-        name: groupInfo.name,
-        role: groupInfo.role || 'member',
-        lastActivity: Date.now(),
-        unreadCount: 0
-      }
-
-      await set(groupRef, groupData)
+      // Simplified: only store group ID
+      await set(groupRef, true)
 
       debugLog('Group Added to User Successfully', { userId, groupId })
 

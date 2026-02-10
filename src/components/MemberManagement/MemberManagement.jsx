@@ -27,7 +27,7 @@ function MemberManagement({ groupId, members, currentUserId, onMembersChange }) 
 
   // Filter out owner and current user from management list
   const managedMembers = Object.entries(members)
-    .filter(([memberId, member]) => {
+    .filter(([, member]) => {
       // Cannot manage owner
       if (member.role === 'owner') return false
       // Can manage other members

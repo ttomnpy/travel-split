@@ -7,7 +7,6 @@ import './UserProfileSetupPage.css'
 export function UserProfileSetupPage({ onProfileComplete }) {
   const { user, logout, error: authError, updateUserProfileData } = useAuth()
   const [displayName, setDisplayName] = useState(user?.displayName || '')
-  const [photoURL, setPhotoURL] = useState(user?.photoURL || '')
   const [previewURL, setPreviewURL] = useState(user?.photoURL || '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(authError || '')
@@ -103,7 +102,7 @@ export function UserProfileSetupPage({ onProfileComplete }) {
     <div className="profile-setup-container">
       <div className="profile-setup-card">
         <h1>Complete Your Profile</h1>
-        <p className="subtitle">Let's get to know you better!</p>
+        <p className="subtitle">Let&apos;s get to know you better!</p>
 
         <form onSubmit={handleSubmit}>
           {/* Avatar Section */}

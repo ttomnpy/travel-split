@@ -7,7 +7,7 @@ import { auth } from '../../firebase'
 import { BiSend } from 'react-icons/bi'
 import './VerificationPage.css'
 
-function VerificationPage({ email, user, onVerificationComplete, onBackToLogin }) {
+function VerificationPage({ email, onVerificationComplete, onBackToLogin }) {
   const { t } = useTranslation()
   const [isResending, setIsResending] = useState(false)
   const [resendMessage, setResendMessage] = useState('')
@@ -45,7 +45,7 @@ function VerificationPage({ email, user, onVerificationComplete, onBackToLogin }
       let credentials
       try {
         credentials = JSON.parse(storedCredentials)
-      } catch (e) {
+      } catch {
         setResendMessage(t('verification.checkFailed'))
         return
       }

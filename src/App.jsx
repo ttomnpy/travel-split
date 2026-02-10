@@ -1,13 +1,12 @@
-import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { LoadingSpinner } from './components'
-import { LoginPage, HomePage, UserProfileSetupPage, GroupDetailPage, GroupSettingsPage, JoinGroupPage } from './pages'
+import { LoginPage, HomePage, UserProfileSetupPage, GroupDetailPage, GroupSettingsPage, JoinGroupPage, ActivityPage } from './pages'
 import { debugLog } from './utils/debug'
 import './styles/global.css'
 
 function AppContent() {
-  const { user, loading, logout, isNewUser, setIsNewUser } = useAuth()
+  const { user, logout, isNewUser, setIsNewUser } = useAuth()
 
   // Show loading only until isNewUser status is determined
   if (isNewUser === null) {
@@ -44,6 +43,7 @@ function AppContent() {
   return (
     <Routes>
       <Route path="/" element={<HomePage onLogout={logout} />} />
+      <Route path="/activity" element={<ActivityPage onLogout={logout} />} />
       <Route path="/groups/:groupId" element={<GroupDetailPage onLogout={logout} />} />
       <Route path="/groups/:groupId/settings" element={<GroupSettingsPage onLogout={logout} />} />
       <Route path="/join/:inviteCode?" element={<JoinGroupPage onLogout={logout} />} />

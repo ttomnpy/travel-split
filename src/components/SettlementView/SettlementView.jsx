@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { BiCheck, BiPlus } from 'react-icons/bi'
 import SettlementHistory from '../SettlementHistory/SettlementHistory'
 import './SettlementView.css'

@@ -6,8 +6,8 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useTranslation } from '../../hooks/useTranslation'
 import { getDisplayName } from '../../utils/displayNameHelper'
 import { debugLog, debugError } from '../../utils/debug'
-import { getGroup } from '../../services/groupService'
-import { deleteExpense, calculateSettlements, getSettlementRecords, deleteSettlementRecord } from '../../services/expenseService'
+import { updateGroupLastActivity } from '../../services/groupService'
+import { deleteExpense, calculateSettlements, deleteSettlementRecord } from '../../services/expenseService'
 import { AddMemberModal, InviteModal, MembersList, LoadingSpinner, HeaderControls, AddExpenseModal, ConfirmationModal, SettlementView, SettlementRecordModal, SettlementHistory } from '../../components'
 import { BiUndo, BiPlus, BiMoney, BiX, BiLock, BiShare, BiReceipt, BiChevronDown, BiTrash } from 'react-icons/bi';
 import './GroupDetailPage.css'
@@ -35,7 +35,7 @@ function GroupDetailPage({ onLogout }) {
   const [isLoadingSettlements, setIsLoadingSettlements] = useState(false)
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
-    type: null, // 'expense' or 'settlement'
+    type: null,
     expenseId: null,
     expense: null,
     settlementId: null,
@@ -48,6 +48,13 @@ function GroupDetailPage({ onLogout }) {
       setError('Group not found')
       setIsLoading(false)
       return
+    }
+
+    // Update last activity when user opens the group
+    if (user?.uid) {
+      updateGroupLastActivity(groupId, user.uid).catch(err => {
+        debugLog('Failed to update group activity (non-critical)', err)
+      })
     }
 
     const groupRef = ref(rtdb, `groups/${groupId}`)
@@ -81,7 +88,7 @@ function GroupDetailPage({ onLogout }) {
     )
 
     return () => unsubscribe()
-  }, [groupId])
+  }, [groupId, user?.uid])
 
   // Load settlement records with real-time listening
   useEffect(() => {
@@ -150,7 +157,7 @@ function GroupDetailPage({ onLogout }) {
     return false
   }
 
-  const handleAddMember = (dummyId, member) => {
+  const handleAddMember = () => {
     // Member is automatically added via Firebase listener
     setShowAddMemberModal(false)
   }
@@ -171,7 +178,6 @@ function GroupDetailPage({ onLogout }) {
     try {
       await deleteExpense(groupId, expenseId, expense)
       setExpandedExpense(null)
-      setExpenseToDelete(null)
       setConfirmModal({
         isOpen: false,
         expenseId: null,
@@ -202,7 +208,7 @@ function GroupDetailPage({ onLogout }) {
     debugLog('Settlement recorded, real-time listener will update the records')
   }
 
-  const handleDeleteSettlementRecord = async (recordId, record) => {
+  const handleDeleteSettlementRecord = async (recordId) => {
     setConfirmModal({
       isOpen: true,
       type: 'settlement',
@@ -556,7 +562,7 @@ function GroupDetailPage({ onLogout }) {
                                 
                                 {/* Participant Avatars Stack */}
                                 <div className="participant-avatars-stack">
-                                  {participantIds.slice(0, 4).map((memberId, idx) => (
+                                  {participantIds.slice(0, 4).map((memberId) => (
                                     <div key={memberId} className="avatar-small participant" title={members[memberId]?.name}>
                                       {members[memberId]?.name?.charAt(0).toUpperCase()}
                                     </div>

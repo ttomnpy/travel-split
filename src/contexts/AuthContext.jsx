@@ -4,28 +4,9 @@ import { auth, rtdb } from '../firebase'
 import { ref, get } from 'firebase/database'
 import { userService } from '../services/userService'
 import { debugLog, debugWarn, debugError } from '../utils/debug'
+import { getRedirectResultChecked, setRedirectResultChecked, getRedirectResultPromise, setRedirectResultPromise } from './authRedirectHandler'
 
 const AuthContext = createContext(null)
-
-// Global flag to prevent duplicate getRedirectResult calls (React StrictMode issue)
-let redirectResultChecked = false
-let redirectResultPromise = null
-
-// Reset the flag when page loads with OAuth redirect parameters
-if (typeof window !== 'undefined') {
-  const urlParams = new URLSearchParams(window.location.search)
-  const hasState = urlParams.has('state')
-  const hasCode = urlParams.has('code')
-
-  // Use debug logging rather than console to keep production console quiet
-  if (hasState || hasCode) {
-    debugLog('OAuth redirect detected - resetting redirect flags', { hasState, hasCode })
-    redirectResultChecked = false
-    redirectResultPromise = null
-  } else {
-    debugLog('No OAuth params found on page load', null)
-  }
-}
 
 function useAuth() {
   const context = useContext(AuthContext)
@@ -48,13 +29,13 @@ export function AuthProvider({ children }) {
     const initializeAuth = async () => {
       try {
         // Use global promise to ensure getRedirectResult is only called once
-        if (!redirectResultChecked) {
+        if (!getRedirectResultChecked()) {
           debugLog('Checking for Google Redirect Result', null)
-          redirectResultPromise = getRedirectResult(auth)
-          redirectResultChecked = true
+          setRedirectResultPromise(getRedirectResult(auth))
+          setRedirectResultChecked(true)
         }
 
-        const result = await redirectResultPromise
+        const result = await getRedirectResultPromise()
         
         if (!isMounted) return
 

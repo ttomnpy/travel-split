@@ -2,7 +2,7 @@
 import { BiX, BiLoader } from 'react-icons/bi';
 import { useTranslation } from '../../hooks/useTranslation';
 import { createGroup } from '../../services/groupService';
-import { debugLog, debugError } from '../../utils/debug';
+import { debugError } from '../../utils/debug';
 import './CreateGroupModal.css';
 
 const CreateGroupModal = ({ isOpen, onClose, onGroupCreated, userId, userData }) => {
@@ -170,7 +170,7 @@ const CreateGroupModal = ({ isOpen, onClose, onGroupCreated, userId, userData })
 
           <div className="cgm-form-group">
             <label htmlFor="cgm-description" className="cgm-form-label">
-              {t('createGroup.description') || 'Description'} ({t('createGroup.optional') || 'optional'})
+              {t('createGroup.description') || 'Description'} {t('common.optional')}
             </label>
             <textarea
               id="cgm-description"

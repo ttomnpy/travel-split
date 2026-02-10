@@ -71,7 +71,7 @@ export const fetchLiveExchangeRate = async (fromCurrency, toCurrency) => {
       let errorData = null
       try {
         errorData = await response.json()
-      } catch (e) {
+      } catch {
         errorData = { raw: response.statusText }
       }
       

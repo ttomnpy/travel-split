@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react'
-import { useAuth } from '../../contexts/AuthContext'
+import { useState } from 'react'
 import { useAuthForm } from '../../hooks/useAuthForm'
 import { useTranslation } from '../../hooks/useTranslation'
 import { getErrorMessage, validateEmail, validatePassword, validatePasswordsMatch } from '../../utils/validation'
@@ -108,7 +107,7 @@ function LoginPage() {
     )
   }
 
-  const handleGoogleSuccess = (user) => {
+  const handleGoogleSuccess = () => {
     setLocalError('')
   }
 

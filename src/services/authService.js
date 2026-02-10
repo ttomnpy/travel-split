@@ -8,7 +8,6 @@ import {
   sendEmailVerification
 } from 'firebase/auth'
 import { auth, googleProvider } from '../firebase'
-import { userService } from './userService'
 import { debugLog, debugWarn, debugError } from '../utils/debug'
 
 export const authService = {
@@ -90,7 +89,7 @@ export const authService = {
       let credentials
       try {
         credentials = JSON.parse(storedCredentials)
-      } catch (e) {
+      } catch {
         debugError('Resend Email Error', 'Invalid stored credentials format')
         return { error: 'invalid_credentials', message: null }
       }

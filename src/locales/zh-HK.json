@@ -87,7 +87,9 @@
     "createTrip": "建立旅程",
     "joinTrip": "加入旅程",
     "activeTrips": "活躍旅程",
-    "viewAll": "查看全部",
+    "viewAll": "顯示更多",
+    "showLess": "收起",
+    "noRecentTransactions": "暫時沒有交易",
     "totalPending": "待結清",
     "lastActivity": "最後活動：{{time}}",
     "settle": "結帳",
@@ -385,5 +387,20 @@
     "currencyWarning": "行程建立後無法更改貨幣。請仔細選擇。",
     "createSuccess": "行程建立成功！",
     "createError": "建立行程失敗。請重試。"
+  },
+  "activity": {
+    "title": "活動記錄",
+    "filterByGroup": "按行程篩選",
+    "allGroups": "所有行程",
+    "sortBy": "排序方式",
+    "newest": "最新優先",
+    "oldest": "最舊優先",
+    "amountHigh": "金額（高到低）",
+    "amountLow": "金額（低到高）",
+    "expense": "筆支出",
+    "expenses": "筆支出",
+    "noActivity": "暫無活動記錄",
+    "noActivityDescription": "您的活動記錄將在此處顯示",
+    "backHome": "返回首頁"
   }
 }

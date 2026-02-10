@@ -1,4 +1,4 @@
-import { ref, push, update, get, set } from 'firebase/database'
+import { ref, push, update, get } from 'firebase/database'
 import { rtdb } from '../firebase'
 import { debugLog, debugError } from '../utils/debug'
 import { updateAllUserSummaries } from './groupService'

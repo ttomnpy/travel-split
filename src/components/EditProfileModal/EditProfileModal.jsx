@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useAuth } from '../../contexts/AuthContext'
 import { useTranslation } from '../../hooks/useTranslation'
 import { updateProfile, sendPasswordResetEmail } from 'firebase/auth'
 import { ref, update } from 'firebase/database'
@@ -11,7 +10,7 @@ import './EditProfileModal.css'
 function EditProfileModal({ isOpen, onClose, user, userProfile, onProfileUpdated }) {
   const { t, currentLanguage } = useTranslation()
   const [displayName, setDisplayName] = useState(userProfile?.displayName || user?.displayName || '')
-  const [email, setEmail] = useState(user?.email || '')
+  const [email] = useState(user?.email || '')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')

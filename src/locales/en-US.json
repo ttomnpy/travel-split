@@ -87,7 +87,9 @@
     "createTrip": "Create Trip",
     "joinTrip": "Join Trip",
     "activeTrips": "Active Trips",
-    "viewAll": "View All",
+    "viewAll": "Show More",
+    "showLess": "Show Less",
+    "noRecentTransactions": "No transactions yet",
     "totalPending": "Total Pending",
     "lastActivity": "Last activity: {{time}}",
     "settle": "Settle",
@@ -385,5 +387,20 @@
     "currencyWarning": "Currency cannot be changed after group creation. Please choose carefully.",
     "createSuccess": "Trip created successfully!",
     "createError": "Failed to create trip. Please try again."
+  },
+  "activity": {
+    "title": "Activity",
+    "filterByGroup": "Filter by Group",
+    "allGroups": "All Groups",
+    "sortBy": "Sort by",
+    "newest": "Newest First",
+    "oldest": "Oldest First",
+    "amountHigh": "Amount (High to Low)",
+    "amountLow": "Amount (Low to High)",
+    "expense": "expense",
+    "expenses": "expenses",
+    "noActivity": "No Activity Yet",
+    "noActivityDescription": "Your activity history will appear here",
+    "backHome": "Back to Home"
   }
 }

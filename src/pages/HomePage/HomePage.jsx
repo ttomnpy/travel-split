@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ref, onValue } from 'firebase/database'
+import { ref, onValue, get } from 'firebase/database'
 import { rtdb } from '../../firebase'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTranslation } from '../../hooks/useTranslation'
 import { getDisplayName } from '../../utils/displayNameHelper'
 import { debugLog, debugError } from '../../utils/debug'
 import { Button, LoadingSpinner, HeaderControls, CreateGroupModal, EditProfileModal } from '../../components'
-import { BiMoney, BiPlus, BiLink, BiTrendingUp, BiX, BiChevronRight, BiWallet, BiGroup, BiUser } from 'react-icons/bi'
+import { BiMoney, BiPlus, BiLink, BiTrendingUp, BiX, BiChevronRight, BiWallet, BiGroup, BiUser, BiMinus } from 'react-icons/bi'
 import './HomePage.css'
 
 function HomePage({ onLogout }) {
@@ -22,6 +22,7 @@ function HomePage({ onLogout }) {
   const [error, setError] = useState('')
   const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false)
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false)
+  const [showAllGroups, setShowAllGroups] = useState(false)
   const allExpensesRef = useRef({})
 
   useEffect(() => {
@@ -68,93 +69,123 @@ function HomePage({ onLogout }) {
             return
           }
 
-          const groups = groupsSnapshot.val()
+          const groupsData = groupsSnapshot.val()
           
-          // Transform groups data
-          const groupsArray = Object.entries(groups).map(([groupId, groupData]) => ({
-            id: groupId,
-            ...groupData
-          }))
-
-          setUserGroups(groupsArray)
-          // Note: overallSummary is managed by the userSummaries listener, don't reset it here
-
-          // Clean up old listeners
-          unsubscribeExpenses.forEach(unsub => unsub())
-          unsubscribeExpenses = []
-          allExpensesRef.current = {}
-
-          // Set up listeners for each group's summary and expenses
-          for (const groupId of Object.keys(groups)) {
-            // Listen to group summary for member count and user balance
-            const groupSummaryRef = ref(rtdb, `groups/${groupId}/summary`)
-            const summaryUnsubscribe = onValue(
-              groupSummaryRef,
-              (summarySnapshot) => {
-                if (summarySnapshot.exists()) {
-                  const summary = summarySnapshot.val()
-                  debugLog(`Group ${groupId} summary updated:`, summary)
-                  // Update the userGroups with the correct memberCount and pendingAmount
-                  setUserGroups(prev => prev.map(g => {
-                    if (g.id === groupId) {
-                      // Calculate user's balance in this group from balances object
-                      const userBalance = summary.balances?.[user.uid] || 0
-                      return { 
-                        ...g, 
-                        summary,
-                        pendingAmount: userBalance
-                      }
-                    }
-                    return g
-                  }))
-                }
-              },
-              (error) => {
-                debugError(`Error listening to group summary for ${groupId}`, error)
-              }
-            )
-            unsubscribeExpenses.push(summaryUnsubscribe)
-
-            // Listen to expenses
-            const groupRef = ref(rtdb, `groups/${groupId}/expenses`)
-            const unsubscribe = onValue(
-              groupRef,
-              (groupSnapshot) => {
-                debugLog(`Expenses updated for group ${groupId}`, groupSnapshot.val())
+          // Fetch full group data for each group
+          const fetchGroupData = async () => {
+            const groupsArray = []
+            
+            for (const [groupId, metadata] of Object.entries(groupsData)) {
+              try {
+                const groupSnapshot = await get(ref(rtdb, `groups/${groupId}`))
                 if (groupSnapshot.exists()) {
-                  const expenses = groupSnapshot.val()
-                  allExpensesRef.current[groupId] = Object.entries(expenses).map(([expenseId, expenseData]) => ({
-                    id: expenseId,
-                    groupId,
-                    groupName: groups[groupId]?.name || 'Unknown Group',
-                    ...expenseData
-                  }))
-                } else {
-                  allExpensesRef.current[groupId] = []
+                  const groupData = groupSnapshot.val()
+                  groupsArray.push({
+                    id: groupId,
+                    name: groupData.name,
+                    currency: groupData.currency,
+                    description: groupData.description,
+                    memberCount: Object.keys(groupData.members || {}).length,
+                    summary: groupData.summary,
+                    pendingAmount: groupData.summary?.balances?.[user.uid] || 0,
+                    lastActivityAt: metadata?.lastActivityAt || 0
+                  })
                 }
-
-                // Sort by date and take last 5
-                const sorted = Object.values(allExpensesRef.current)
-                  .flat()
-                  .sort((a, b) => (b.created || 0) - (a.created || 0))
-                  .slice(0, 5)
-
-                debugLog('Recent expenses updated', sorted)
-                setRecentExpenses(sorted)
-                setIsLoading(false)
-              },
-              (error) => {
-                debugError(`Error listening to expenses for group ${groupId}`, error)
-                setIsLoading(false)
+              } catch (err) {
+                debugError(`Error fetching group data for ${groupId}`, err)
               }
-            )
-            unsubscribeExpenses.push(unsubscribe)
-          }
+            }
 
-          if (Object.keys(groups).length === 0) {
-            setRecentExpenses([])
-            setIsLoading(false)
+            // Sort by lastActivityAt (most recent first)
+            groupsArray.sort((a, b) => (b.lastActivityAt || 0) - (a.lastActivityAt || 0))
+            
+            setUserGroups(groupsArray)
+            debugLog('User groups loaded and sorted', { count: groupsArray.length })
+
+            // Clean up old listeners
+            unsubscribeExpenses.forEach(unsub => unsub())
+            unsubscribeExpenses = []
+            allExpensesRef.current = {}
+
+            // Set up listeners for each group's summary and expenses
+            for (const groupId of Object.keys(groupsData)) {
+              // Listen to group summary for real-time updates
+              const groupSummaryRef = ref(rtdb, `groups/${groupId}/summary`)
+              const summaryUnsubscribe = onValue(
+                groupSummaryRef,
+                (summarySnapshot) => {
+                  if (summarySnapshot.exists()) {
+                    const summary = summarySnapshot.val()
+                    debugLog(`Group ${groupId} summary updated:`, summary)
+                    // Update the userGroups with the correct memberCount and pendingAmount
+                    setUserGroups(prev => prev.map(g => {
+                      if (g.id === groupId) {
+                        // Calculate user's balance in this group from balances object
+                        const userBalance = summary.balances?.[user.uid] || 0
+                        return { 
+                          ...g, 
+                          summary,
+                          memberCount: summary.memberCount || g.memberCount,
+                          pendingAmount: userBalance
+                        }
+                      }
+                      return g
+                    }))
+                  }
+                },
+                (error) => {
+                  debugError(`Error listening to group summary for ${groupId}`, error)
+                }
+              )
+              unsubscribeExpenses.push(summaryUnsubscribe)
+
+              // Listen to expenses
+              const groupRef = ref(rtdb, `groups/${groupId}/expenses`)
+              const unsubscribe = onValue(
+                groupRef,
+                (groupSnapshot) => {
+                  debugLog(`Expenses updated for group ${groupId}`, groupSnapshot.val())
+                  if (groupSnapshot.exists()) {
+                    const expenses = groupSnapshot.val()
+                    // Find the group name from userGroups state
+                    const group = userGroups.find(g => g.id === groupId)
+                    const groupName = group?.name || 'Unknown Group'
+                    
+                    allExpensesRef.current[groupId] = Object.entries(expenses).map(([expenseId, expenseData]) => ({
+                      id: expenseId,
+                      groupId,
+                      groupName,
+                      ...expenseData
+                    }))
+                  } else {
+                    allExpensesRef.current[groupId] = []
+                  }
+
+                  // Sort by date and take last 5
+                  const sorted = Object.values(allExpensesRef.current)
+                    .flat()
+                    .sort((a, b) => (b.created || 0) - (a.created || 0))
+                    .slice(0, 5)
+
+                  debugLog('Recent expenses updated', sorted)
+                  setRecentExpenses(sorted)
+                  setIsLoading(false)
+                },
+                (error) => {
+                  debugError(`Error listening to expenses for group ${groupId}`, error)
+                  setIsLoading(false)
+                }
+              )
+              unsubscribeExpenses.push(unsubscribe)
+            }
+
+            if (Object.keys(groupsData).length === 0) {
+              setRecentExpenses([])
+              setIsLoading(false)
+            }
           }
+          
+          fetchGroupData()
         } catch (err) {
           debugError('Error loading home data', err)
           setError(t('home.errorLoading'))
@@ -367,16 +398,30 @@ function HomePage({ onLogout }) {
                 {t('home.activeTrips')}
               </h2>
               {userGroups.length > 3 && (
-                <button className="view-all-btn" onClick={() => navigate('/groups')}>
-                  {t('home.viewAll')} <BiChevronRight />
+                <button 
+                  className="view-all-btn" 
+                  onClick={() => setShowAllGroups(!showAllGroups)}
+                  aria-label={showAllGroups ? 'Show less groups' : 'Show all groups'}
+                >
+                  {showAllGroups ? (
+                    <>
+                      {t('home.showLess') || 'Show Less'} <BiMinus />
+                    </>
+                  ) : (
+                    <>
+                      {t('home.viewAll') || 'Show More'} <BiPlus />
+                    </>
+                  )}
                 </button>
               )}
             </div>
 
             <div className="groups-list">
-              {userGroups.slice(0, 3).map((group) => {
+              {userGroups.slice(0, showAllGroups ? userGroups.length : 3).map((group) => {
                 // Calculate member count from summary or members object
                 const memberCount = group.summary?.memberCount || group.memberCount || 0
+                const lastExpenseDate = group.summary?.lastExpenseAt || null
+                
                 return (
                 <div
                   key={group.id}
@@ -384,10 +429,14 @@ function HomePage({ onLogout }) {
                   onClick={() => navigate(`/groups/${group.id}`)}
                 >
                   <div className="group-header">
-                    <div className="group-emoji">🌍</div>
                     <div className="group-info">
                       <h3 className="group-name">{group.name}</h3>
                       <p className="group-meta">{memberCount} {currentLanguage === 'zh-HK' ? '成員' : 'members'}</p>
+                      {lastExpenseDate ? (
+                        <p className="group-date">{currentLanguage === 'zh-HK' ? '最後交易：' : 'Last expense: '}{formatDate(lastExpenseDate)}</p>
+                      ) : (
+                        <p className="group-date" style={{color: '#999'}}>{t('home.noRecentTransactions')}</p>
+                      )}
                     </div>
                   </div>
                   <div className="group-footer">

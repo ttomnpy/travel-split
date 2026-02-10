@@ -1,4 +1,4 @@
-import { ref, set, update, push, get } from 'firebase/database'
+import { ref, update, push, get } from 'firebase/database'
 import { rtdb } from '../firebase'
 import { debugLog, debugError } from '../utils/debug'
 
@@ -254,10 +254,7 @@ export const createGroup = async (userId, groupData) => {
     const updates = {}
     updates[`groups/${String(groupId)}`] = newGroup
     updates[`users/${String(userId)}/groups/${String(groupId)}`] = {
-      name: newGroup.name,
-      role: 'owner',
-      lastActivity: now,
-      unreadCount: 0
+      lastActivityAt: now
     }
     // Add to invite code reverse index for O(1) lookup
     updates[`inviteCodes/${String(inviteCode)}`] = String(groupId)
@@ -445,12 +442,9 @@ export const claimDummyMember = async (groupId, dummyId, userId, userName, userE
       originallyCreatedBy: dummy.createdBy
     }
 
-    // Update user's group reference
+    // Update user's group reference with activity timestamp
     updates[`users/${String(userId)}/groups/${String(groupId)}`] = {
-      name: group.name,
-      role: realMember.role,
-      lastActivity: now,
-      unreadCount: 0
+      lastActivityAt: now
     }
 
     await update(ref(rtdb), updates)
@@ -511,7 +505,7 @@ export const getAvailableDummyMembers = async (groupId) => {
   try {
     const members = await getGroupMembers(groupId)
     return Object.entries(members || {})
-      .filter(([_, member]) => member.type === 'dummy')
+      .filter(([, member]) => member.type === 'dummy')
       .map(([id, member]) => ({ id, ...member }))
   } catch (error) {
     debugError('Error fetching available dummy members', error)
@@ -521,10 +515,11 @@ export const getAvailableDummyMembers = async (groupId) => {
 
 /**
  * Update group info
+ * Owner and admins can update group details (name, description)
  */
 export const updateGroupInfo = async (groupId, userId, updates) => {
   try {
-    // Verify user is owner
+    // Verify group exists and fetch member info
     const groupRef = ref(rtdb, `groups/${groupId}`)
     const groupSnapshot = await get(groupRef)
 
@@ -533,15 +528,33 @@ export const updateGroupInfo = async (groupId, userId, updates) => {
     }
 
     const group = groupSnapshot.val()
-    if (group.owner !== userId) {
-      throw new Error('Only group owner can update group info')
+    
+    // Check if user is owner or admin
+    const isOwner = group.owner === userId
+    const userMember = group.members?.[userId]
+    const isAdmin = userMember?.role === 'admin'
+    
+    if (!isOwner && !isAdmin) {
+      throw new Error('Only group owner or admin can update group info')
     }
 
+    const updatedGroup = { ...group, ...updates }
     const updateData = {}
-    updateData[`groups/${String(groupId)}`] = { ...group, ...updates }
+    updateData[`groups/${String(groupId)}`] = updatedGroup
+
+    // Note: No longer syncing name/role to users/{userId}/groups/ since it only stores group ID
+    if (updates.name) {
+      debugLog('Group name updated (no denormalization needed)', { 
+        groupId, 
+        newName: updates.name,
+        updatedBy: userId,
+        isAdmin
+      })
+    }
 
     await update(ref(rtdb), updateData)
 
+    debugLog('Group info updated successfully', { groupId, updates, updatedBy: userId, isAdmin })
     return { success: true }
   } catch (error) {
     debugError('Error updating group', error)
@@ -606,13 +619,10 @@ export const joinGroupByInviteCode = async (inviteCode, userId, userData) => {
     updates[`groups/${String(groupId)}/summary/memberCount`] = (Object.keys(group.members || {}).length) + 1
     updates[`groups/${String(groupId)}/summary/balances/${String(userId)}`] = 0
     updates[`users/${String(userId)}/groups/${String(groupId)}`] = {
-      name: group.name,
-      role: 'member',
-      lastActivity: now,
-      unreadCount: 0
+      lastActivityAt: now
     }
 
-    const historyId = push(ref(rtdb, 'dummy')).key
+    const historyId = push(ref(rtdb, `groups/${String(groupId)}/memberHistory`)).key
     updates[`groups/${String(groupId)}/memberHistory/${String(historyId)}`] = {
       action: 'joined',
       memberId: userId,
@@ -674,10 +684,7 @@ export const joinGroupById = async (groupId, userId, userData) => {
     updates[`groups/${String(groupId)}/summary/memberCount`] = (Object.keys(group.members || {}).length) + 1
     updates[`groups/${String(groupId)}/summary/balances/${String(userId)}`] = 0
     updates[`users/${String(userId)}/groups/${String(groupId)}`] = {
-      name: group.name,
-      role: 'member',
-      lastActivity: now,
-      unreadCount: 0
+      lastActivityAt: now
     }
 
     await update(ref(rtdb), updates)
@@ -1017,6 +1024,8 @@ export const updateMemberRole = async (groupId, targetMemberId, isAdmin, ownerId
     } else {
       updates[`groups/${String(groupId)}/members/${String(targetMemberId)}/role`] = 'member'
     }
+    
+    // Note: users/{userId}/groups/{groupId} now only stores group ID for simplicity
 
     await update(ref(rtdb), updates)
 
@@ -1024,7 +1033,8 @@ export const updateMemberRole = async (groupId, targetMemberId, isAdmin, ownerId
       groupId, 
       targetMemberId, 
       isAdmin,
-      ownerId 
+      ownerId,
+      syncedToUserCache: true
     })
 
     return {
@@ -1048,3 +1058,30 @@ export const updateMemberRole = async (groupId, targetMemberId, isAdmin, ownerId
  */
 export { createExpense } from './expenseService'
 
+/**
+ * Update group last activity timestamp for the current user
+ * Call this when user opens/views the group
+ * 
+ * @param {string} groupId - Group ID
+ * @param {string} userId - Current user ID
+ */
+export const updateGroupLastActivity = async (groupId, userId) => {
+  try {
+    if (!groupId || !userId) {
+      throw new Error('Group ID and user ID are required')
+    }
+
+    const now = Date.now()
+    const updateData = {}
+    updateData[`users/${String(userId)}/groups/${String(groupId)}/lastActivityAt`] = now
+
+    await update(ref(rtdb), updateData)
+
+    debugLog('Group last activity updated', { groupId, userId, timestamp: now })
+    return { success: true }
+  } catch (error) {
+    debugError('Error updating group last activity', error)
+    // Don't throw - this is a non-critical operation
+    return { success: false, error: error.message }
+  }
+}

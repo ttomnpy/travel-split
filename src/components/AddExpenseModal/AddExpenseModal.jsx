@@ -45,7 +45,6 @@ const AddExpenseModal = ({ isOpen, onClose, groupId, groupMembers, groupCurrency
   const [errors, setErrors] = useState({})
   const [isLoading, setIsLoading] = useState(false)
   const [submitError, setSubmitError] = useState(null)
-  const [submitSuccess, setSubmitSuccess] = useState(false)
 
   // Exchange rate state
   const [exchangeRate, setExchangeRate] = useState({
@@ -362,7 +361,6 @@ const AddExpenseModal = ({ isOpen, onClose, groupId, groupMembers, groupCurrency
 
     setIsLoading(true)
     setSubmitError(null)
-    setSubmitSuccess(false)
 
     try {
       // Get exchange rate if currency differs
@@ -429,7 +427,6 @@ const AddExpenseModal = ({ isOpen, onClose, groupId, groupMembers, groupCurrency
 
       await createExpense(groupId, expenseData, currentUserId)
 
-      setSubmitSuccess(true)
       setTimeout(() => {
         onClose()
         setFormData({

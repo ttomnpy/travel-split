@@ -6,7 +6,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useTranslation } from '../../hooks/useTranslation'
 import { getDisplayName } from '../../utils/displayNameHelper'
 import { debugLog, debugError } from '../../utils/debug'
-import { leaveGroup, deleteGroup } from '../../services/groupService'
+import { leaveGroup, deleteGroup, updateGroupInfo } from '../../services/groupService'
 import { HeaderControls, LoadingSpinner, ConfirmationModal, MemberManagement } from '../../components'
 import { BiUndo, BiX } from 'react-icons/bi'
 import './GroupSettingsPage.css'
@@ -25,7 +25,6 @@ function GroupSettingsPage({ onLogout }) {
   const [isSavingMemberName, setIsSavingMemberName] = useState(false)
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
-  const [refreshMembers, setRefreshMembers] = useState(0)
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
     type: null, // 'leave' or 'delete'
@@ -94,25 +93,26 @@ function GroupSettingsPage({ onLogout }) {
   }, [groupId, user?.uid])
 
   const handleSaveGroupSettings = async () => {
-    if (!canManage) return
+    if (!canManage) {
+      setError(t('groupSettings.adminOrOwnerRequired') || 'Only group owner or admin can change settings')
+      return
+    }
 
     setIsSavingSettings(true)
     setError('')
     setSuccessMessage('')
 
     try {
-      if (!groupId) {
-        throw new Error('Invalid group ID')
+      if (!groupId || !user?.uid) {
+        throw new Error('Invalid group ID or user ID')
       }
-
-      const gId = String(groupId)
 
       const updates = {}
       let hasUpdates = false
 
       // Update group name
       if (formData.groupName && String(formData.groupName).trim().length > 0) {
-        updates[`groups/${gId}/name`] = String(formData.groupName).trim()
+        updates.name = String(formData.groupName).trim()
         hasUpdates = true
       }
 
@@ -120,7 +120,7 @@ function GroupSettingsPage({ onLogout }) {
 
       // Update description (always update if present)
       if (typeof formData.description === 'string' || typeof formData.description === 'undefined') {
-        updates[`groups/${gId}/description`] = String(formData.description || '').trim()
+        updates.description = String(formData.description || '').trim()
         hasUpdates = true
       }
 
@@ -131,8 +131,9 @@ function GroupSettingsPage({ onLogout }) {
         return
       }
 
-      debugLog('Updating group settings', { groupId: gId, updates })
-      await update(ref(rtdb), updates)
+      debugLog('Updating group settings', { groupId, updates })
+      // Use updateGroupInfo to ensure proper validation and denormalization sync
+      await updateGroupInfo(groupId, user.uid, updates)
 
       debugLog('Group settings updated', { groupId })
       setSuccessMessage(t('groupSettings.savedSuccess') || 'Settings saved successfully!')
@@ -344,7 +345,7 @@ function GroupSettingsPage({ onLogout }) {
             groupId={groupId}
             members={group?.members}
             currentUserId={user?.uid}
-            onMembersChange={() => setRefreshMembers((prev) => prev + 1)}
+            onMembersChange={() => {}}
           />
         )}
 
