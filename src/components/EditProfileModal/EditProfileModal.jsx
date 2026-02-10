@@ -8,7 +8,7 @@ import { BiX, BiCheck, BiLoaderCircle } from 'react-icons/bi'
 import './EditProfileModal.css'
 
 function EditProfileModal({ isOpen, onClose, user, userProfile, onProfileUpdated }) {
-  const { t, currentLanguage } = useTranslation()
+  const { t } = useTranslation()
   const [displayName, setDisplayName] = useState(userProfile?.displayName || user?.displayName || '')
   const [email] = useState(user?.email || '')
   const [isLoading, setIsLoading] = useState(false)
@@ -25,7 +25,7 @@ function EditProfileModal({ isOpen, onClose, user, userProfile, onProfileUpdated
     setSuccessMessage('')
 
     if (!displayName.trim()) {
-      setError(currentLanguage === 'zh-HK' ? '顯示名稱不能為空' : 'Display name cannot be empty')
+      setError(t('profile.displayNameEmpty'))
       return
     }
 
@@ -47,7 +47,7 @@ function EditProfileModal({ isOpen, onClose, user, userProfile, onProfileUpdated
         await update(ref(rtdb), updates)
       }
 
-      setSuccessMessage(currentLanguage === 'zh-HK' ? '資料已更新' : 'Profile updated successfully')
+      setSuccessMessage(t('profile.success'))
       debugLog('Profile updated successfully')
 
       // Notify parent component
@@ -64,11 +64,7 @@ function EditProfileModal({ isOpen, onClose, user, userProfile, onProfileUpdated
       }, 2000)
     } catch (err) {
       debugError('Error updating profile', err)
-      setError(
-        currentLanguage === 'zh-HK'
-          ? '更新資料失敗，請稍後重試'
-          : 'Failed to update profile. Please try again.'
-      )
+      setError(t('profile.error'))
     } finally {
       setIsLoading(false)
     }
@@ -83,11 +79,7 @@ function EditProfileModal({ isOpen, onClose, user, userProfile, onProfileUpdated
     try {
       if (user?.email) {
         await sendPasswordResetEmail(auth, user.email)
-        setResetPasswordMessage(
-          currentLanguage === 'zh-HK'
-            ? '重設密碼的郵件已發送至您的電郵'
-            : 'Password reset email has been sent to your email'
-        )
+        setResetPasswordMessage(t('profile.resetPasswordSent'))
         debugLog('Password reset email sent to', user.email)
 
         // Clear message after 3 seconds
@@ -98,11 +90,7 @@ function EditProfileModal({ isOpen, onClose, user, userProfile, onProfileUpdated
       }
     } catch (err) {
       debugError('Error sending password reset email', err)
-      setError(
-        currentLanguage === 'zh-HK'
-          ? '發送重設密碼郵件失敗，請稍後重試'
-          : 'Failed to send password reset email. Please try again.'
-      )
+      setError(t('profile.error'))
     } finally {
       setResetPasswordLoading(false)
     }
@@ -207,9 +195,7 @@ function EditProfileModal({ isOpen, onClose, user, userProfile, onProfileUpdated
               {/* Reset Password Confirmation */}
               <div className="reset-password-info">
                 <p>
-                  {currentLanguage === 'zh-HK'
-                    ? '我們會向您的電郵地址發送一個重設密碼的連結。'
-                    : 'We will send a password reset link to your email address.'}
+                  {t('profile.resetPasswordInfo')}
                 </p>
                 <p className="email-display">{email}</p>
               </div>

@@ -15,11 +15,16 @@ function MembersList({ members, currentUserId, isOwner, onAddMember }) {
     )
   }
 
-  // Separate real and dummy members
+  // Separate real and dummy members, excluding removed members for active member list
   const realMembers = []
   const dummyMembers = []
 
   Object.entries(members).forEach(([memberId, member]) => {
+    // Skip removed members from active member list (they'll be shown separately)
+    if (member.status === 'removed') {
+      return
+    }
+    
     if (member.type === 'real') {
       realMembers.push({ id: memberId, ...member })
     } else {

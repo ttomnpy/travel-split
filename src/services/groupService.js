@@ -108,28 +108,39 @@ export const updateOwnerOverallSummary = async (ownerId) => {
 
     debugLog('Recalculating owner overall summary', { ownerId })
 
-    // Get user's own summary which is already aggregated
-    const userSummaryRef = ref(rtdb, `userSummaries/${String(ownerId)}`)
-    const userSummarySnapshot = await get(userSummaryRef)
-
     let totalGroupCount = 0
     let totalBalance = 0
 
-    if (userSummarySnapshot.exists()) {
-      const userSummary = userSummarySnapshot.val()
-      totalBalance = userSummary.totalBalance || 0
-    }
-
-    // Get all groups for the owner to count them
+    // Get all groups for the user to recalculate balance from scratch
     const userGroupsRef = ref(rtdb, `users/${String(ownerId)}/groups`)
     const userGroupsSnapshot = await get(userGroupsRef)
 
     if (userGroupsSnapshot.exists()) {
       const userGroups = userGroupsSnapshot.val()
-      totalGroupCount = Object.keys(userGroups).length
+      const groupIds = Object.keys(userGroups)
+      totalGroupCount = groupIds.length
+
+      // Recalculate total balance from all groups
+      for (const groupId of groupIds) {
+        try {
+          const groupRef = ref(rtdb, `groups/${String(groupId)}/summary/balances/${String(ownerId)}`)
+          const groupBalanceSnapshot = await get(groupRef)
+          
+          if (groupBalanceSnapshot.exists()) {
+            const balance = groupBalanceSnapshot.val()
+            totalBalance += (balance || 0)
+          }
+        } catch (err) {
+          debugError('Error fetching balance for group', { groupId, ownerId, error: err.message })
+          // Continue with other groups even if one fails
+        }
+      }
     }
 
-    // Update owner's overall summary using batch write
+    // Round totalBalance to 2 decimals to avoid floating point errors
+    totalBalance = Math.round(totalBalance * 100) / 100
+
+    // Update user's overall summary using batch write
     const summaryData = {
       totalBalance,
       totalGroupCount,
@@ -359,15 +370,44 @@ export const claimDummyMember = async (groupId, dummyId, userId, userName, userE
 
     const now = Date.now()
 
-    // Create real member entry linked to dummy
-    const realMember = {
-      type: 'real',
-      name: userName,
-      email: userEmail || '',
-      photo: null,
-      role: dummy.role || 'member',
-      joinedAt: now,
-      linkedFrom: dummyId
+    // Check if user was previously removed from group - restore their identity
+    const existingMember = group.members?.[userId]
+    
+    // If user is already an active member, they cannot claim another dummy
+    if (existingMember && existingMember.status !== 'removed') {
+      throw new Error('You are already a member of this group. You cannot claim another member.')
+    }
+    
+    let realMember
+
+    if (existingMember && existingMember.status === 'removed') {
+      // Restore removed member's identity - can only inherit previous data
+      debugLog('Restoring removed member identity', { groupId, userId, dummyId })
+      realMember = {
+        ...existingMember,
+        status: 'active', // Restore to active status
+        type: 'real',
+        name: userName,
+        email: userEmail || '',
+        photo: null,
+        // Clear removal information
+        removedAt: undefined,
+        removedBy: undefined,
+        linkedFrom: dummyId,
+        restoredAt: now,
+        restoredFrom: 'removed'
+      }
+    } else {
+      // Create new real member entry linked to dummy
+      realMember = {
+        type: 'real',
+        name: userName,
+        email: userEmail || '',
+        photo: null,
+        role: dummy.role || 'member',
+        joinedAt: now,
+        linkedFrom: dummyId
+      }
     }
 
     // Prepare batch update to replace dummy with real user everywhere
@@ -424,11 +464,30 @@ export const claimDummyMember = async (groupId, dummyId, userId, userName, userE
 
     // Update summary balances
     const balances = group.summary?.balances || {}
-    if (balances[dummyId] !== undefined) {
-      balances[userId] = balances[dummyId]
+    const dummyBalance = balances[dummyId] || 0
+    
+    if (existingMember && existingMember.status === 'removed') {
+      // Restoring removed member - add dummy balance to existing balance
+      const existingBalance = balances[userId] || 0
+      balances[userId] = existingBalance + dummyBalance
       delete balances[dummyId]
-      updates[`groups/${String(groupId)}/summary/balances`] = balances
+      debugLog('Restoring removed member balance', { 
+        userId, 
+        existingBalance, 
+        dummyBalance, 
+        newBalance: balances[userId] 
+      })
+      
+      // Increment member count since we're restoring a removed member
+      const currentMemberCount = group.summary?.memberCount || 1
+      updates[`groups/${String(groupId)}/summary/memberCount`] = currentMemberCount + 1
+    } else {
+      // Normal claim - transfer dummy balance to user
+      balances[userId] = dummyBalance
+      delete balances[dummyId]
     }
+    
+    updates[`groups/${String(groupId)}/summary/balances`] = balances
 
     // Add to member history
     const historyId = push(ref(rtdb, `groups/${String(groupId)}/memberHistory`)).key
@@ -448,6 +507,14 @@ export const claimDummyMember = async (groupId, dummyId, userId, userName, userE
     }
 
     await update(ref(rtdb), updates)
+
+    // Update user's overall summary after claiming dummy member
+    // This recalculates their balance including this new group
+    try {
+      await updateOwnerOverallSummary(userId)
+    } catch (err) {
+      debugError('Error updating user summary after claiming dummy member', { userId, groupId, error: err.message })
+    }
 
     return {
       success: true,
@@ -597,27 +664,61 @@ export const joinGroupByInviteCode = async (inviteCode, userId, userData) => {
 
     const group = groupSnapshot.val()
 
-    // Check if user is already a member
-    if (group.members?.[userId]) {
+    // Check if user is already a member (active)
+    const existingMember = group.members?.[userId]
+    if (existingMember && existingMember.status !== 'removed') {
       throw new Error('You are already a member of this group')
     }
 
-    // Prepare new member data
+    // Prepare member data
     const now = Date.now()
-    const newMember = {
-      type: 'real',
-      name: userData?.displayName || 'Member',
-      email: userData?.email || '',
-      photo: userData?.photoURL || null,
-      role: 'member',
-      joinedAt: now
+    let newMember
+
+    if (existingMember && existingMember.status === 'removed') {
+      // Restore removed member's identity
+      debugLog('Restoring removed member identity via invite code', { groupId, userId })
+      newMember = {
+        ...existingMember,
+        status: 'active', // Restore to active status
+        type: 'real',
+        name: userData?.displayName || existingMember.name || 'Member',
+        email: userData?.email || existingMember.email || '',
+        photo: userData?.photoURL || existingMember.photo || null,
+        // Clear removal information
+        removedAt: undefined,
+        removedBy: undefined,
+        restoredAt: now,
+        restoredFrom: 'removed'
+      }
+    } else {
+      // Create new real member entry
+      newMember = {
+        type: 'real',
+        name: userData?.displayName || 'Member',
+        email: userData?.email || '',
+        photo: userData?.photoURL || null,
+        role: 'member',
+        joinedAt: now
+      }
     }
 
     // Batch updates
     const updates = {}
+    const isRestoringRemoved = existingMember && existingMember.status === 'removed'
+    
     updates[`groups/${String(groupId)}/members/${String(userId)}`] = newMember
-    updates[`groups/${String(groupId)}/summary/memberCount`] = (Object.keys(group.members || {}).length) + 1
-    updates[`groups/${String(groupId)}/summary/balances/${String(userId)}`] = 0
+    
+    // Update member count
+    if (isRestoringRemoved) {
+      // Restoring removed member - increment count back
+      updates[`groups/${String(groupId)}/summary/memberCount`] = (group.summary?.memberCount || 0) + 1
+      // Keep existing balance to preserve financial history
+    } else {
+      // New member - add to count and set balance to 0
+      updates[`groups/${String(groupId)}/summary/memberCount`] = (Object.keys(group.members || {}).length) + 1
+      updates[`groups/${String(groupId)}/summary/balances/${String(userId)}`] = 0
+    }
+    
     updates[`users/${String(userId)}/groups/${String(groupId)}`] = {
       lastActivityAt: now
     }
@@ -631,6 +732,14 @@ export const joinGroupByInviteCode = async (inviteCode, userId, userData) => {
     }
 
     await update(ref(rtdb), updates)
+
+    // Update user's overall summary after joining group
+    // This recalculates their group count and balance including this new group
+    try {
+      await updateOwnerOverallSummary(userId)
+    } catch (err) {
+      debugError('Error updating user summary after joining group via invite code', { userId, groupId, error: err.message })
+    }
 
     debugLog('Successfully joined group', { groupId, userId, groupName: group.name })
 
@@ -661,33 +770,76 @@ export const joinGroupById = async (groupId, userId, userData) => {
     }
 
     const group = groupSnapshot.val()
+    const existingMember = group.members?.[userId]
 
-    // Check if user is already a member
-    if (group.members?.[userId]) {
+    // Check if user is already a member (active)
+    if (existingMember && existingMember.status !== 'removed') {
       throw new Error('You are already a member of this group')
     }
 
-    // Prepare new member data
+    // Prepare member data
     const now = Date.now()
-    const newMember = {
-      type: 'real',
-      name: userData?.displayName || 'Member',
-      email: userData?.email || '',
-      photo: userData?.photoURL || null,
-      role: 'member',
-      joinedAt: now
+    let newMember
+
+    if (existingMember && existingMember.status === 'removed') {
+      // Restore removed member's identity
+      debugLog('Restoring removed member identity', { groupId, userId })
+      newMember = {
+        ...existingMember,
+        status: 'active', // Restore to active status
+        type: 'real',
+        name: userData?.displayName || existingMember.name || 'Member',
+        email: userData?.email || existingMember.email || '',
+        photo: userData?.photoURL || existingMember.photo || null,
+        // Clear removal information
+        removedAt: undefined,
+        removedBy: undefined,
+        restoredAt: now,
+        restoredFrom: 'removed'
+      }
+    } else {
+      // Create new real member entry
+      newMember = {
+        type: 'real',
+        name: userData?.displayName || 'Member',
+        email: userData?.email || '',
+        photo: userData?.photoURL || null,
+        role: 'member',
+        joinedAt: now
+      }
     }
 
     // Batch updates
     const updates = {}
+    const isRestoringRemoved = existingMember && existingMember.status === 'removed'
+    
     updates[`groups/${String(groupId)}/members/${String(userId)}`] = newMember
-    updates[`groups/${String(groupId)}/summary/memberCount`] = (Object.keys(group.members || {}).length) + 1
-    updates[`groups/${String(groupId)}/summary/balances/${String(userId)}`] = 0
+    
+    // Update member count
+    if (isRestoringRemoved) {
+      // Restoring removed member - increment count back since they were decremented on removal
+      updates[`groups/${String(groupId)}/summary/memberCount`] = (group.summary?.memberCount || 0) + 1
+      // Keep existing balance to preserve financial history
+      // Don't set balance to 0 - keep what they owed/were owed
+    } else {
+      // New member - add to count and set balance to 0
+      updates[`groups/${String(groupId)}/summary/memberCount`] = (Object.keys(group.members || {}).length) + 1
+      updates[`groups/${String(groupId)}/summary/balances/${String(userId)}`] = 0
+    }
+    
     updates[`users/${String(userId)}/groups/${String(groupId)}`] = {
       lastActivityAt: now
     }
 
     await update(ref(rtdb), updates)
+
+    // Update user's overall summary after joining group
+    // This recalculates their group count and balance including this new group
+    try {
+      await updateOwnerOverallSummary(userId)
+    } catch (err) {
+      debugError('Error updating user summary after joining group', { userId, groupId, error: err.message })
+    }
 
     debugLog('Successfully joined group', { groupId, userId })
 
@@ -760,6 +912,14 @@ export const leaveGroup = async (groupId, userId) => {
 
     await update(ref(rtdb), updates)
 
+    // Update user's overall summary after leaving the group
+    // This recalculates their balance without this group
+    try {
+      await updateOwnerOverallSummary(userId)
+    } catch (err) {
+      debugError('Error updating user summary after leaving group', { userId, groupId, error: err.message })
+    }
+
     debugLog('Successfully left group', { groupId, userId })
 
     return {
@@ -800,6 +960,9 @@ export const deleteGroup = async (groupId, userId) => {
       throw new Error('Only group owner can delete the group')
     }
 
+    // Collect all member IDs before deletion (needed to update their summaries)
+    const memberIds = group.members ? Object.keys(group.members) : []
+
     // Delete group and all related data
     const updates = {}
 
@@ -820,8 +983,18 @@ export const deleteGroup = async (groupId, userId) => {
 
     await update(ref(rtdb), updates)
 
-    // Update owner's overall summary after deleting the group
-    await updateOwnerOverallSummary(userId)
+    // Update all members' overall summaries after deleting the group
+    // This recalculates their balance without this deleted group
+    debugLog('Updating summaries for all members after group deletion', { groupId, memberCount: memberIds.length })
+    
+    for (const memberId of memberIds) {
+      try {
+        await updateOwnerOverallSummary(memberId)
+      } catch (err) {
+        debugError('Error updating member summary after group deletion', { memberId, groupId, error: err.message })
+        // Continue with other members even if one fails
+      }
+    }
 
     debugLog('Successfully deleted group', { groupId, userId })
 
@@ -876,18 +1049,24 @@ export const removeMemberFromGroup = async (groupId, targetMemberId, ownerId) =>
     // Get member info for logging
     const memberInfo = group.members[targetMemberId]
 
-    // Update data to remove member
+    // Update data to mark member as removed (soft delete)
     const updates = {}
+    const now = Date.now()
 
-    // Remove from group members
-    updates[`groups/${String(groupId)}/members/${String(targetMemberId)}`] = null
+    // Mark member as removed instead of deleting
+    updates[`groups/${String(groupId)}/members/${String(targetMemberId)}`] = {
+      ...memberInfo,
+      status: 'removed',
+      removedAt: now,
+      removedBy: ownerId
+    }
 
-    // Remove group from member's user data (if real member)
+    // Remove group from member's user data (if real member) so they don't see it
     if (memberInfo.type === 'real') {
       updates[`users/${String(targetMemberId)}/groups/${String(groupId)}`] = null
     }
 
-    // Update member count in summary
+    // Update member count to exclude removed member
     const memberCount = Math.max(0, (group.summary?.memberCount || 1) - 1)
     updates[`groups/${String(groupId)}/summary/memberCount`] = memberCount
 
@@ -896,13 +1075,29 @@ export const removeMemberFromGroup = async (groupId, targetMemberId, ownerId) =>
     // Update owner's overall summary after member removal
     await updateOwnerOverallSummary(ownerId)
 
-    debugLog('Successfully removed member from group', { groupId, targetMemberId, ownerId })
+    // Update removed member's summary if they are a real member
+    // This recalculates their balance without this group
+    if (memberInfo.type === 'real') {
+      try {
+        await updateOwnerOverallSummary(targetMemberId)
+      } catch (err) {
+        debugError('Error updating removed member summary', { targetMemberId, groupId, error: err.message })
+      }
+    }
+
+    debugLog('Successfully marked member as removed from group', { 
+      groupId, 
+      targetMemberId, 
+      ownerId,
+      removedAt: now
+    })
 
     return {
       success: true,
       groupId,
       removedMemberId: targetMemberId,
-      memberName: memberInfo.name
+      memberName: memberInfo.name,
+      removedAt: now
     }
   } catch (error) {
     debugError('Error removing member from group', error)

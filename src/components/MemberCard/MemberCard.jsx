@@ -1,5 +1,6 @@
-import { BiCheck, BiHourglass, BiCrown, BiStar } from 'react-icons/bi'
+import { BiCheck, BiHourglass, BiCrown, BiStar, BiX } from 'react-icons/bi'
 import { useState, useRef, useEffect } from 'react'
+import { getMemberDisplayName } from '../../utils/displayNameHelper'
 import './MemberCard.css'
 
 function MemberCard({ member, isOwner, isCurrentUser }) {
@@ -25,6 +26,16 @@ function MemberCard({ member, isOwner, isCurrentUser }) {
 
   const getStatusIndicators = () => {
     const indicators = []
+
+    // Removed indicator - highest priority, shown alone
+    if (member.status === 'removed') {
+      indicators.push({
+        type: 'removed',
+        icon: BiX,
+        label: 'Removed from group'
+      })
+      return indicators
+    }
 
     // Owner indicator - icon only with tooltip
     if (isOwner) {
@@ -75,8 +86,8 @@ function MemberCard({ member, isOwner, isCurrentUser }) {
     return email.substring(0, maxLength) + '...'
   }
 
-  // Display name - use member.name (group-level customizable name)
-  const displayMemberName = member.name || 'Member'
+  // Display name - use member.name (group-level customizable name) with removed status if needed
+  const displayMemberName = getMemberDisplayName(member)
 
   return (
     <div className="member-card">

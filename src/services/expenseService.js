@@ -1,6 +1,7 @@
 import { ref, push, update, get } from 'firebase/database'
 import { rtdb } from '../firebase'
 import { debugLog, debugError } from '../utils/debug'
+import { getMemberDisplayName } from '../utils/displayNameHelper'
 import { updateAllUserSummaries } from './groupService'
 
 /**
@@ -437,9 +438,9 @@ export const calculateSettlements = (group) => {
     const balances = group.summary?.balances || {}
     const memberNames = {}
 
-    // Initialize member names
+    // Initialize member names with removed status indicator
     Object.keys(group.members).forEach(memberId => {
-      memberNames[memberId] = group.members[memberId].name || 'Unknown'
+      memberNames[memberId] = getMemberDisplayName(group.members[memberId])
     })
 
     // Filter out members with zero balance

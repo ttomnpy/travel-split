@@ -4,7 +4,7 @@ import { ref, onValue } from 'firebase/database'
 import { rtdb } from '../../firebase'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTranslation } from '../../hooks/useTranslation'
-import { getDisplayName } from '../../utils/displayNameHelper'
+import { getDisplayName, getMemberDisplayName } from '../../utils/displayNameHelper'
 import { debugLog, debugError } from '../../utils/debug'
 import { updateGroupLastActivity } from '../../services/groupService'
 import { deleteExpense, calculateSettlements, deleteSettlementRecord } from '../../services/expenseService'
@@ -535,7 +535,7 @@ function GroupDetailPage({ onLogout }) {
                               {payerIds.length > 0 && (
                                 <div className="payer-avatar-section">
                                   <div className="avatar-large payer">
-                                    {expense.payers[payerIds[0]]?.name?.charAt(0).toUpperCase()}
+                                    {getMemberDisplayName(expense.payers[payerIds[0]])?.charAt(0).toUpperCase()}
                                   </div>
                                 </div>
                               )}
@@ -563,7 +563,7 @@ function GroupDetailPage({ onLogout }) {
                                 {/* Participant Avatars Stack */}
                                 <div className="participant-avatars-stack">
                                   {participantIds.slice(0, 4).map((memberId) => (
-                                    <div key={memberId} className="avatar-small participant" title={members[memberId]?.name}>
+                                    <div key={memberId} className="avatar-small participant" title={getMemberDisplayName(members[memberId])}>
                                       {members[memberId]?.name?.charAt(0).toUpperCase()}
                                     </div>
                                   ))}
@@ -587,7 +587,7 @@ function GroupDetailPage({ onLogout }) {
                                     {payerIds.map((payerId) => (
                                       <div key={payerId} className="detail-pill payer">
                                         <div className="pill-name-row">
-                                          <span className="pill-name">{expense.payers[payerId]?.name}</span>
+                                          <span className="pill-name">{getMemberDisplayName(expense.payers[payerId])}</span>
                                           {payerId === user?.uid && (
                                             <span className="pill-you-badge">{t('member.you') || 'You'}</span>
                                           )}
@@ -603,7 +603,7 @@ function GroupDetailPage({ onLogout }) {
                                   <div className="details-pills">
                                     {participantIds.map((memberId) => (
                                       <div key={memberId} className="detail-pill participant">
-                                        <span className="pill-name">{members[memberId]?.name || 'Unknown'}</span>
+                                        <span className="pill-name">{getMemberDisplayName(members[memberId]) || 'Unknown'}</span>
                                       </div>
                                     ))}
                                   </div>
@@ -616,7 +616,7 @@ function GroupDetailPage({ onLogout }) {
                                     <div className="details-pills">
                                       {Object.entries(expense.splitDetails).map(([memberId, amount]) => (
                                         <div key={memberId} className="detail-pill payment">
-                                          <span className="pill-name">{members[memberId]?.name || 'Unknown'} {t('groupDetail.owes') || 'owes'}</span>
+                                          <span className="pill-name">{getMemberDisplayName(members[memberId]) || 'Unknown'} {t('groupDetail.owes') || 'owes'}</span>
                                           <span className="pill-amount">{formatCurrency(amount)}</span>
                                         </div>
                                       ))}

@@ -25,12 +25,14 @@ function MemberManagement({ groupId, members, currentUserId, onMembersChange }) 
     return null
   }
 
-  // Filter out owner and current user from management list
+  // Filter out owner, current user, and removed members from management list
   const managedMembers = Object.entries(members)
     .filter(([, member]) => {
       // Cannot manage owner
       if (member.role === 'owner') return false
-      // Can manage other members
+      // Cannot manage removed members
+      if (member.status === 'removed') return false
+      // Can manage other active members
       return true
     })
     .map(([memberId, member]) => ({ id: memberId, ...member }))

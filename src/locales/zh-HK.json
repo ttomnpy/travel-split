@@ -191,11 +191,14 @@
   },
   "profile": {
     "title": "完成個人資料",
+    "subtitle": "讓我們更好地了解你！",
     "displayName": "顯示名稱",
     "uploadPhoto": "上傳照片",
     "displayNamePlaceholder": "輸入你的名稱",
-    "complete": "完成設定",
-    "completing": "完成中...",
+    "changePhoto": "更改照片",
+    "clickToUpload": "點擊上傳或更改你的照片",
+    "complete": "完成資料設定",
+    "completing": "保存中...",
     "success": "個人資料已更新",
     "error": "更新個人資料失敗",
     "editProfile": "編輯個人資料",
@@ -205,8 +208,16 @@
     "updating": "更新中...",
     "resetPassword": "重設密碼",
     "sendResetLink": "發送重設鏈接",
+    "resetPasswordSent": "重設密碼的郵件已發送至您的電郵",
     "sending": "發送中...",
-    "cancel": "取消"
+    "cancel": "取消",
+    "logout": "登出",
+    "selectImageFile": "請選擇一個圖像文件",
+    "imageTooLarge": "圖像大小必須小於 5MB",
+    "displayNameEmpty": "顯示名稱不能為空",
+    "displayNameTooLong": "顯示名稱必須少於 50 個字符",
+    "saveProfileError": "保存資料失敗。請稍後重試。",
+    "resetPasswordInfo": "我們會向你的電郵地址發送密碼重設鏈接。"
   },
   "language": {
     "chinese": "繁體中文",
@@ -402,5 +413,8 @@
     "noActivity": "暫無活動記錄",
     "noActivityDescription": "您的活動記錄將在此處顯示",
     "backHome": "返回首頁"
+  },
+  "members": {
+    "memberRemoved": "（已移除）"
   }
 }

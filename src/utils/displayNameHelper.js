@@ -34,3 +34,29 @@ export function getDisplayName(userProfile, user) {
 export function getUserEmail(user) {
   return user?.email || 'Unknown'
 }
+
+/**
+ * Get display name for a member, adding "(removed)" if member has been removed from group
+ * @param {Object} member - Member object
+ * @returns {string} Display name with status
+ */
+export function getMemberDisplayName(member) {
+  if (!member) return 'Unknown Member'
+  
+  const baseName = member.name || 'Member'
+  
+  if (member.status === 'removed') {
+    return `${baseName} (removed)`
+  }
+  
+  return baseName
+}
+
+/**
+ * Check if member is removed from group
+ * @param {Object} member - Member object
+ * @returns {boolean} True if member is removed
+ */
+export function isMemberRemoved(member) {
+  return member?.status === 'removed'
+}

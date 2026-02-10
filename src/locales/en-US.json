@@ -191,11 +191,14 @@
   },
   "profile": {
     "title": "Complete Your Profile",
+    "subtitle": "Let's get to know you better!",
     "displayName": "Display Name",
     "uploadPhoto": "Upload Photo",
     "displayNamePlaceholder": "Enter your name",
-    "complete": "Complete Setup",
-    "completing": "Completing...",
+    "changePhoto": "Change Photo",
+    "clickToUpload": "Click to upload or change your photo",
+    "complete": "Complete Profile",
+    "completing": "Saving...",
     "success": "Profile updated successfully",
     "error": "Failed to update profile",
     "editProfile": "Edit Profile",
@@ -205,8 +208,16 @@
     "updating": "Updating...",
     "resetPassword": "Reset Password",
     "sendResetLink": "Send Reset Link",
+    "resetPasswordSent": "Password reset email has been sent to your email",
     "sending": "Sending...",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "logout": "Log Out",
+    "selectImageFile": "Please select an image file",
+    "imageTooLarge": "Image size must be less than 5MB",
+    "displayNameEmpty": "Display name cannot be empty",
+    "displayNameTooLong": "Display name must be less than 50 characters",
+    "saveProfileError": "Failed to save profile. Please try again.",
+    "resetPasswordInfo": "We will send a password reset link to your email address."
   },
   "language": {
     "chinese": "繁體中文",
@@ -402,5 +413,8 @@
     "noActivity": "No Activity Yet",
     "noActivityDescription": "Your activity history will appear here",
     "backHome": "Back to Home"
+  },
+  "members": {
+    "memberRemoved": "(removed)"
   }
 }

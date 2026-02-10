@@ -68,6 +68,27 @@ const AddExpenseModal = ({ isOpen, onClose, groupId, groupMembers, groupCurrency
     }
   }, [isOpen])
 
+  // Sync participants with groupMembers whenever groupMembers changes
+  useEffect(() => {
+    setFormData((prev) => {
+      const currentParticipants = prev.participants || {}
+      const updatedParticipants = Object.keys(groupMembers || {}).reduce((acc, memberId) => {
+        // Keep existing participant or create new one
+        acc[memberId] = currentParticipants[memberId] || { selected: true, amount: 0, percentage: 0, shares: 1 }
+        return acc
+      }, {})
+      
+      // Only update if participants changed to avoid unnecessary re-renders
+      const hasChanged = Object.keys(updatedParticipants).length !== Object.keys(currentParticipants).length ||
+                         Object.keys(updatedParticipants).some(id => !currentParticipants[id])
+      
+      if (hasChanged) {
+        return { ...prev, participants: updatedParticipants }
+      }
+      return prev
+    })
+  }, [groupMembers])
+
   // Update single payer amount when total amount changes
   useEffect(() => {
     if (formData.payerMode === 'single' && formData.amount && formData.payers) {
@@ -109,8 +130,8 @@ const AddExpenseModal = ({ isOpen, onClose, groupId, groupMembers, groupCurrency
       participants: {
         ...prev.participants,
         [memberId]: {
-          ...prev.participants[memberId],
-          selected: !prev.participants[memberId].selected,
+          ...(prev.participants[memberId] || { amount: 0, percentage: 0, shares: 1 }),
+          selected: !(prev.participants[memberId]?.selected ?? true),
         },
       },
     }))
@@ -123,7 +144,7 @@ const AddExpenseModal = ({ isOpen, onClose, groupId, groupMembers, groupCurrency
       participants: {
         ...prev.participants,
         [memberId]: {
-          ...prev.participants[memberId],
+          ...(prev.participants[memberId] || { selected: true, amount: 0, percentage: 0, shares: 1 }),
           [field]: value === '' ? 0 : parseFloat(value),
         },
       },

@@ -1,5 +1,6 @@
 import React from 'react'
 import { BiTrash, BiCalendar, BiMoney, BiComment } from 'react-icons/bi'
+import { getMemberDisplayName } from '../../utils/displayNameHelper'
 import './SettlementHistory.css'
 
 function SettlementHistory({ 
@@ -38,8 +39,8 @@ function SettlementHistory({
 
       <div className="settlement-records">
         {settlementRecords.map((record) => {
-          const fromName = members?.[record.from]?.name || 'Unknown'
-          const toName = members?.[record.to]?.name || 'Unknown'
+          const fromName = getMemberDisplayName(members?.[record.from]) || 'Unknown'
+          const toName = getMemberDisplayName(members?.[record.to]) || 'Unknown'
           const isUserInvolved = record.from === currentUserId || record.to === currentUserId
           const isUserPayer = record.from === currentUserId
           const isUserRecipient = record.to === currentUserId
