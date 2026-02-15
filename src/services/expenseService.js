@@ -45,119 +45,149 @@ export const createExpense = async (groupId, expenseData, currentUserId) => {
     const payers = expenseData.payers
 
     // Calculate splits based on split method
-    // Payer bears the rounding difference
+    // Remainder distribution prioritizes payers (those who already paid), especially who paid more
     let details = {}
     let splitMeta = {}
     let totalAmount = 0
     const payerIds = Object.keys(expenseData.payers || {})
     const nonPayerParticipants = expenseData.participants.filter(id => !payerIds.includes(id))
 
-    if (expenseData.splitMethod === 'equal') {
-      // Calculate non-payer participants first
-      const nonPayerAmount = Math.floor((expenseData.amount * 100) / expenseData.participants.length) / 100
-      nonPayerParticipants.forEach((participantId) => {
-        details[participantId] = nonPayerAmount
-        totalAmount += nonPayerAmount
-      })
-      // Payers split the remaining amount equally
-      const payerCount = payerIds.length
-      if (payerCount > 0) {
-        const payerBaseAmount = Math.floor(((expenseData.amount - totalAmount) * 100) / payerCount) / 100
-        payerIds.forEach((payerId, index) => {
-          let amount = payerBaseAmount
-          // Last payer bears rounding difference
-          if (index === payerCount - 1) {
-            amount = Math.round((expenseData.amount - totalAmount - payerBaseAmount * (payerCount - 1)) * 100) / 100
-          }
-          details[payerId] = amount
-          totalAmount += amount
-        })
-      }
-    } else if (expenseData.splitMethod === 'percentage') {
-      // Calculate non-payer participants first with their percentages
-      expenseData.participants.forEach((participantId) => {
-        if (!payerIds.includes(participantId)) {
-          const percentage = expenseData.splitDetails[participantId]?.percentage || 0
-          const amount = Math.round((expenseData.amount * percentage) / 100 * 100) / 100
-          details[participantId] = amount
-          splitMeta[participantId] = { percentage }
-          totalAmount += amount
+    // Helper function: Sort participants by payer status and payer amount
+    // Returns array of participantIds sorted by: [payers_by_amount_desc, non_payers]
+    const getRemainderDistributionOrder = (participants) => {
+      const payers = []
+      const nonPayers = []
+
+      participants.forEach((id) => {
+        if (payerIds.includes(id)) {
+          payers.push({
+            id,
+            amount: expenseData.payers[id]?.amount || 0
+          })
+        } else {
+          nonPayers.push(id)
         }
       })
-      // Payers split the remaining amount by their percentage
-      const payerCount = payerIds.length
-      if (payerCount > 0) {
-        let payerTotalPercentage = 0
-        payerIds.forEach((payerId) => {
-          payerTotalPercentage += expenseData.splitDetails[payerId]?.percentage || 0
-        })
-        payerIds.forEach((payerId, index) => {
-          const percentage = expenseData.splitDetails[payerId]?.percentage || 0
-          let amount = Math.round(((expenseData.amount - totalAmount) * percentage) / payerTotalPercentage * 100) / 100
-          // Last payer bears rounding difference
-          if (index === payerCount - 1) {
-            // Just use remaining amount to ensure total equals expense amount
-            amount = Math.round((expenseData.amount - totalAmount) * 100) / 100
-          }
-          details[payerId] = amount
-          splitMeta[payerId] = { percentage }
-          totalAmount += amount
-        })
-      }
-    } else if (expenseData.splitMethod === 'shares') {
-      let totalShares = 0
+
+      // Sort payers by amount paid (highest first)
+      payers.sort((a, b) => b.amount - a.amount)
+
+      // Return combined list: payers first, then non-payers
+      return [...payers.map(p => p.id), ...nonPayers]
+    }
+
+    if (expenseData.splitMethod === 'equal') {
+      // Fair equal split: round UP, adjust payers for overage
+      // Convert to cents to avoid floating point issues
+      const amountInCents = Math.round(expenseData.amount * 100)
+      const participantCount = expenseData.participants.length
+      
+      // Calculate base amount (rounded UP)
+      const baseCents = Math.ceil(amountInCents / participantCount)
+      
+      // Initialize all with base amount (rounded up)
       expenseData.participants.forEach((participantId) => {
-        totalShares += expenseData.splitDetails[participantId]?.shares || 1
+        details[participantId] = baseCents
       })
-      // Calculate non-payer participants first
-      nonPayerParticipants.forEach((participantId) => {
+
+      // Calculate total and overage
+      const totalAfterRoundUp = baseCents * participantCount
+      const overageCents = totalAfterRoundUp - amountInCents
+      
+      // If there's overage, reduce one payer by the overage
+      if (overageCents > 0) {
+        const remainderOrder = getRemainderDistributionOrder(expenseData.participants)
+        if (remainderOrder.length > 0) {
+          const payerToAdjust = remainderOrder[0]
+          details[payerToAdjust] = (details[payerToAdjust] || baseCents) - overageCents
+        }
+      }
+
+      // Convert from cents to currency
+      Object.keys(details).forEach((id) => {
+        details[id] = details[id] / 100
+      })
+    } else if (expenseData.splitMethod === 'percentage') {
+      // Fair percentage split: round UP, adjust payers for overage
+      const amountInCents = Math.round(expenseData.amount * 100)
+      const amounts = []
+      let totalCents = 0
+      
+      // Calculate amounts for each participant (rounded UP)
+      expenseData.participants.forEach((participantId) => {
+        const percentage = expenseData.splitDetails[participantId]?.percentage || 0
+        const amountCents = Math.ceil((amountInCents * percentage) / 100)
+        amounts.push({ participantId, amountCents })
+        totalCents += amountCents
+        splitMeta[participantId] = { percentage }
+      })
+      
+      // Calculate overage and adjust payers
+      const overageCents = totalCents - amountInCents
+      if (overageCents > 0) {
+        const remainderOrder = getRemainderDistributionOrder(expenseData.participants)
+        for (let i = 0; i < remainderOrder.length && overageCents > 0; i++) {
+          const participantId = remainderOrder[i]
+          const item = amounts.find(a => a.participantId === participantId)
+          if (item) {
+            const reduction = Math.min(overageCents, item.amountCents)
+            item.amountCents -= reduction
+            break
+          }
+        }
+      }
+      
+      // Apply amounts to details
+      amounts.forEach(({ participantId, amountCents }) => {
+        details[participantId] = amountCents / 100
+      })
+    } else if (expenseData.splitMethod === 'shares') {
+      // Fair shares split: round UP, adjust payers for overage
+      const amountInCents = Math.round(expenseData.amount * 100)
+      let totalShares = 0
+      const amounts = []
+      
+      // Calculate total shares
+      expenseData.participants.forEach((participantId) => {
         const shares = expenseData.splitDetails[participantId]?.shares || 1
-        const amount = Math.round((expenseData.amount * shares) / totalShares * 100) / 100
-        details[participantId] = amount
+        totalShares += shares
+      })
+      
+      // Calculate amounts for each participant (rounded UP)
+      let totalCents = 0
+      expenseData.participants.forEach((participantId) => {
+        const shares = expenseData.splitDetails[participantId]?.shares || 1
+        const amountCents = Math.ceil((amountInCents * shares) / totalShares)
+        amounts.push({ participantId, amountCents })
+        totalCents += amountCents
         splitMeta[participantId] = { shares }
-        totalAmount += amount
       })
-      // Payers split the remaining amount by their shares
-      const payerCount = payerIds.length
-      if (payerCount > 0) {
-        let payerTotalShares = 0
-        payerIds.forEach((payerId) => {
-          payerTotalShares += expenseData.splitDetails[payerId]?.shares || 1
-        })
-        payerIds.forEach((payerId, index) => {
-          const shares = expenseData.splitDetails[payerId]?.shares || 1
-          let amount = Math.round(((expenseData.amount - totalAmount) * shares) / payerTotalShares * 100) / 100
-          // Last payer bears rounding difference
-          if (index === payerCount - 1) {
-            // Just use remaining amount to ensure total equals expense amount
-            amount = Math.round((expenseData.amount - totalAmount) * 100) / 100
+      
+      // Calculate overage and adjust payers
+      const overageCents = totalCents - amountInCents
+      if (overageCents > 0) {
+        const remainderOrder = getRemainderDistributionOrder(expenseData.participants)
+        for (let i = 0; i < remainderOrder.length && overageCents > 0; i++) {
+          const participantId = remainderOrder[i]
+          const item = amounts.find(a => a.participantId === participantId)
+          if (item) {
+            const reduction = Math.min(overageCents, item.amountCents)
+            item.amountCents -= reduction
+            break
           }
-          details[payerId] = amount
-          splitMeta[payerId] = { shares }
-          totalAmount += amount
-        })
+        }
       }
+      
+      // Apply amounts to details
+      amounts.forEach(({ participantId, amountCents }) => {
+        details[participantId] = amountCents / 100
+      })
     } else if (expenseData.splitMethod === 'exact') {
-      // Calculate non-payer participants first
-      nonPayerParticipants.forEach((participantId) => {
-        const amount = Math.round((expenseData.splitDetails[participantId]?.amount || 0) * 100) / 100
-        details[participantId] = amount
-        totalAmount += amount
+      // Exact split: use amounts as specified
+      expenseData.participants.forEach((participantId) => {
+        const amount = expenseData.splitDetails[participantId]?.amount || 0
+        details[participantId] = Math.round(amount * 100) / 100
       })
-      // Payers split the remaining amount
-      const payerCount = payerIds.length
-      if (payerCount > 0) {
-        payerIds.forEach((payerId, index) => {
-          let amount = Math.round((expenseData.splitDetails[payerId]?.amount || 0) * 100) / 100
-          // Last payer bears rounding difference
-          if (index === payerCount - 1) {
-            // Just use remaining amount to ensure total equals expense amount
-            amount = Math.round((expenseData.amount - totalAmount) * 100) / 100
-          }
-          details[payerId] = amount
-          totalAmount += amount
-        })
-      }
     }
 
     // Parse date to timestamp
@@ -649,6 +679,135 @@ export const getSettlementRecords = async (groupId) => {
 }
 
 /**
+ * Update an existing settlement record
+ * 
+ * @param {string} groupId - The group ID
+ * @param {string} recordId - The settlement record ID
+ * @param {Object} settlementData - Updated settlement data
+ * @returns {Promise<void>}
+ */
+export const updateSettlement = async (groupId, recordId, settlementData) => {
+  try {
+    if (!groupId || !recordId || !settlementData.from || !settlementData.to || !settlementData.amount) {
+      throw new Error('Missing required settlement fields')
+    }
+
+    debugLog('Updating settlement payment', {
+      groupId,
+      recordId,
+      from: settlementData.from,
+      to: settlementData.to,
+      amount: settlementData.amount
+    })
+
+    // Get the existing settlement record
+    const recordRef = ref(rtdb, `groups/${groupId}/settlementRecords/${recordId}`)
+    const recordSnapshot = await get(recordRef)
+
+    if (!recordSnapshot.exists()) {
+      throw new Error('Settlement record not found')
+    }
+
+    const oldRecord = recordSnapshot.val()
+
+    // Get current group data to recalculate balances
+    const groupRef = ref(rtdb, `groups/${groupId}`)
+    const groupSnapshot = await get(groupRef)
+
+    if (!groupSnapshot.exists()) {
+      throw new Error('Group not found')
+    }
+
+    const group = groupSnapshot.val()
+    const currentSummary = group.summary || {}
+    const updatedBalances = { ...currentSummary.balances }
+
+    const now = Date.now()
+
+    // Revert old settlement balances
+    const oldPayerBalance = updatedBalances[oldRecord.from] || 0
+    const oldRecipientBalance = updatedBalances[oldRecord.to] || 0
+
+    updatedBalances[oldRecord.from] = Math.round((oldPayerBalance - oldRecord.amount) * 100) / 100
+    updatedBalances[oldRecord.to] = Math.round((oldRecipientBalance + oldRecord.amount) * 100) / 100
+
+    // Apply new settlement balances
+    const newPayerBalance = updatedBalances[settlementData.from] || 0
+    const newRecipientBalance = updatedBalances[settlementData.to] || 0
+
+    updatedBalances[settlementData.from] = Math.round((newPayerBalance + settlementData.amount) * 100) / 100
+    updatedBalances[settlementData.to] = Math.round((newRecipientBalance - settlementData.amount) * 100) / 100
+
+    // Update settlement record
+    const updatedRecord = {
+      from: settlementData.from,
+      to: settlementData.to,
+      amount: settlementData.amount,
+      paymentMethod: settlementData.paymentMethod || 'cash',
+      remarks: settlementData.remarks || '',
+      date: settlementData.date || new Date().toISOString().split('T')[0],
+      recordedBy: oldRecord.recordedBy,
+      recordedAt: oldRecord.recordedAt,
+      updatedAt: now
+    }
+
+    // Batch update
+    const updates = {}
+    updates[`groups/${groupId}/settlementRecords/${recordId}`] = updatedRecord
+    updates[`groups/${groupId}/summary/balances`] = updatedBalances
+    updates[`groups/${groupId}/summary/lastSettlementAt`] = now
+
+    // Update user summaries for all 4 users involved (old and new payer/recipient)
+    const affectedUsers = new Set([oldRecord.from, oldRecord.to, settlementData.from, settlementData.to])
+
+    for (const userId of affectedUsers) {
+      const userSummaryRef = ref(rtdb, `userSummaries/${userId}`)
+      const userSummarySnapshot = await get(userSummaryRef)
+
+      if (userSummarySnapshot.exists()) {
+        const userSummary = userSummarySnapshot.val()
+        let newAmountOwed = userSummary.totalAmountOwed || 0
+        let newAmountReceivable = userSummary.totalAmountReceivable || 0
+
+        // Revert old settlement for this user (opposite of recordSettlement logic)
+        if (userId === oldRecord.from) {
+          // Old payer: their amountOwed was decreased, so we need to increase it back
+          newAmountOwed += oldRecord.amount
+        } else if (userId === oldRecord.to) {
+          // Old recipient: their amountReceivable was decreased, so we need to increase it back
+          newAmountReceivable += oldRecord.amount
+        }
+
+        // Apply new settlement for this user (same as recordSettlement logic)
+        if (userId === settlementData.from) {
+          // New payer: decrease their amountOwed
+          newAmountOwed -= settlementData.amount
+        } else if (userId === settlementData.to) {
+          // New recipient: decrease their amountReceivable
+          newAmountReceivable -= settlementData.amount
+        }
+
+        newAmountOwed = Math.max(0, Math.round(newAmountOwed * 100) / 100)
+        newAmountReceivable = Math.max(0, Math.round(newAmountReceivable * 100) / 100)
+        const totalBalance = Math.round((newAmountReceivable - newAmountOwed) * 100) / 100
+
+        updates[`userSummaries/${userId}/totalAmountOwed`] = newAmountOwed
+        updates[`userSummaries/${userId}/totalAmountReceivable`] = newAmountReceivable
+        updates[`userSummaries/${userId}/totalBalance`] = totalBalance
+        updates[`userSummaries/${userId}/lastUpdated`] = now
+      }
+    }
+
+    await update(ref(rtdb), updates)
+
+    debugLog('Settlement updated successfully', { settlementRecord: updatedRecord })
+  } catch (error) {
+    debugError('Error updating settlement', error)
+    throw error
+  }
+}
+
+/**
  * Delete a settlement record by ID
  * 
  * @param {string} groupId - The group ID
@@ -717,7 +876,7 @@ export const deleteSettlementRecord = async (groupId, recordId) => {
       const payerSummarySnapshot = await get(payerSummaryRef)
       if (payerSummarySnapshot.exists()) {
         const payerSummary = payerSummarySnapshot.val()
-        const newAmountOwed = Math.round(((payerSummary.totalAmountOwed || 0) + settlementRecord.amount) * 100) / 100
+        const newAmountOwed = Math.max(0, Math.round(((payerSummary.totalAmountOwed || 0) + settlementRecord.amount) * 100) / 100)
         const amountReceivable = payerSummary.totalAmountReceivable || 0
         const totalBalance = Math.round((amountReceivable - newAmountOwed) * 100) / 100
         updates[`userSummaries/${settlementRecord.from}/totalAmountOwed`] = newAmountOwed
@@ -729,7 +888,7 @@ export const deleteSettlementRecord = async (groupId, recordId) => {
       const recipientSummarySnapshot = await get(recipientSummaryRef)
       if (recipientSummarySnapshot.exists()) {
         const recipientSummary = recipientSummarySnapshot.val()
-        const newAmountReceivable = Math.round(((recipientSummary.totalAmountReceivable || 0) + settlementRecord.amount) * 100) / 100
+        const newAmountReceivable = Math.max(0, Math.round(((recipientSummary.totalAmountReceivable || 0) + settlementRecord.amount) * 100) / 100)
         const amountOwed = recipientSummary.totalAmountOwed || 0
         const totalBalance = Math.round((newAmountReceivable - amountOwed) * 100) / 100
         updates[`userSummaries/${settlementRecord.to}/totalAmountReceivable`] = newAmountReceivable

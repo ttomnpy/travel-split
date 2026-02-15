@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { BiX, BiLoader } from 'react-icons/bi'
 import { useTranslation } from '../../hooks/useTranslation'
 import { debugLog, debugError } from '../../utils/debug'
-import { recordSettlement } from '../../services/expenseService'
+import { recordSettlement, updateSettlement } from '../../services/expenseService'
 import './SettlementRecordModal.css'
 
 const SettlementRecordModal = ({ 
@@ -13,13 +13,14 @@ const SettlementRecordModal = ({
   groupCurrency, 
   onSettlementRecorded, 
   currentUserId,
-  settlements 
+  settlements,
+  editingRecord 
 }) => {
   const { t } = useTranslation()
   const modalRef = useRef(null)
 
   const [formData, setFormData] = useState({
-    from: currentUserId,
+    from: '',
     to: '',
     amount: '',
     paymentMethod: '',
@@ -32,21 +33,28 @@ const SettlementRecordModal = ({
   const [submitError, setSubmitError] = useState(null)
   const [submitSuccess, setSubmitSuccess] = useState(false)
 
-  // Available recipients (members excluding current user)
-  const availableRecipients = Object.entries(groupMembers || {})
-    .filter(([memberId]) => memberId !== currentUserId)
+  // Available payers (all group members)
+  const availablePayers = Object.entries(groupMembers || {})
     .map(([memberId, member]) => ({
       id: memberId,
       name: member.name
     }))
 
-  // Calculate amount owed to selected recipient
-  const getAmountOwedToRecipient = (recipientId) => {
-    if (!settlements || !recipientId) return 0
+  // Available recipients (members excluding selected payer)
+  const availableRecipients = Object.entries(groupMembers || {})
+    .filter(([memberId]) => memberId !== formData.from)
+    .map(([memberId, member]) => ({
+      id: memberId,
+      name: member.name
+    }))
+
+  // Calculate amount owed by payer to recipient
+  const getAmountOwedToRecipient = (payerId, recipientId) => {
+    if (!settlements || !payerId || !recipientId) return 0
     
-    // Find if current user owes money to this recipient
+    // Find if selected payer owes money to selected recipient
     const settlement = settlements.find(
-      s => s.from === currentUserId && s.to === recipientId
+      s => s.from === payerId && s.to === recipientId
     )
     
     return settlement ? settlement.amount : 0
@@ -62,11 +70,27 @@ const SettlementRecordModal = ({
     }
   }, [isOpen])
 
-  // Reset form when closing
+  // Prevent scroll wheel from changing number input values
+  useEffect(() => {
+    const handleWheel = (e) => {
+      if (e.target.type === 'number') {
+        e.preventDefault()
+      }
+    }
+
+    if (modalRef.current) {
+      modalRef.current.addEventListener('wheel', handleWheel, { passive: false })
+      return () => {
+        modalRef.current?.removeEventListener('wheel', handleWheel)
+      }
+    }
+  }, [])
+
+  // Reset form when closing or when editing data changes
   useEffect(() => {
     if (!isOpen) {
       setFormData({
-        from: currentUserId,
+        from: '',
         to: '',
         amount: '',
         paymentMethod: '',
@@ -76,18 +100,32 @@ const SettlementRecordModal = ({
       setErrors({})
       setSubmitError(null)
       setSubmitSuccess(false)
+    } else if (editingRecord) {
+      // Populate form with existing record data
+      setFormData({
+        from: editingRecord.from || '',
+        to: editingRecord.to || '',
+        amount: editingRecord.amount ? editingRecord.amount.toString() : '',
+        paymentMethod: editingRecord.paymentMethod || '',
+        remarks: editingRecord.remarks || '',
+        date: editingRecord.date || new Date().toISOString().split('T')[0]
+      })
+      setErrors({})
+      setSubmitError(null)
+      setSubmitSuccess(false)
     }
-  }, [isOpen, currentUserId])
+  }, [isOpen, editingRecord])
 
   // Validate form
   const validateForm = () => {
     const newErrors = {}
-    const amountOwed = getAmountOwedToRecipient(formData.to)
+
+    if (!formData.from) {
+      newErrors.from = t('settlement.payerRequired') || 'Payer is required'
+    }
 
     if (!formData.amount || parseFloat(formData.amount) <= 0) {
       newErrors.amount = t('settlement.amountRequired') || 'Amount is required'
-    } else if (parseFloat(formData.amount) > amountOwed) {
-      newErrors.amount = t('settlement.amountExceedsOwed') || `Cannot exceed amount owed (${amountOwed.toFixed(2)})`
     }
 
     if (!formData.to) {
@@ -105,17 +143,6 @@ const SettlementRecordModal = ({
   // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target
-    
-    // For amount, validate it doesn't exceed amount owed
-    if (name === 'amount') {
-      const amountOwed = getAmountOwedToRecipient(formData.to)
-      const numValue = parseFloat(value)
-      
-      if (value && numValue > amountOwed) {
-        // Don't update if it exceeds amount owed
-        return
-      }
-    }
 
     setFormData((prev) => ({
       ...prev,
@@ -133,7 +160,7 @@ const SettlementRecordModal = ({
   // Handle recipient selection change
   const handleRecipientChange = (e) => {
     const recipientId = e.target.value
-    const amountOwed = getAmountOwedToRecipient(recipientId)
+    const amountOwed = getAmountOwedToRecipient(formData.from, recipientId)
     
     setFormData((prev) => ({
       ...prev,
@@ -145,6 +172,24 @@ const SettlementRecordModal = ({
       setErrors((prev) => ({
         ...prev,
         to: ''
+      }))
+    }
+  }
+
+  // Handle payer selection change
+  const handlePayerChange = (e) => {
+    const payerId = e.target.value
+    setFormData((prev) => ({
+      ...prev,
+      from: payerId,
+      to: '', // Reset recipient when payer changes
+      amount: ''
+    }))
+    // Clear from error when selecting a payer
+    if (errors.from) {
+      setErrors((prev) => ({
+        ...prev,
+        from: ''
       }))
     }
   }
@@ -170,15 +215,21 @@ const SettlementRecordModal = ({
         date: formData.date
       }
 
-      debugLog('Recording settlement', settlementData)
-
-      await recordSettlement(groupId, settlementData, currentUserId)
+      if (editingRecord && editingRecord.id) {
+        // Update existing settlement record
+        debugLog('Updating settlement record', { recordId: editingRecord.id, data: settlementData })
+        await updateSettlement(groupId, editingRecord.id, settlementData)
+      } else {
+        // Create new settlement record
+        debugLog('Recording settlement', settlementData)
+        await recordSettlement(groupId, settlementData, currentUserId)
+      }
 
       setSubmitSuccess(true)
       
       // Reset form
       setFormData({
-        from: currentUserId,
+        from: '',
         to: '',
         amount: '',
         paymentMethod: '',
@@ -201,7 +252,8 @@ const SettlementRecordModal = ({
 
   if (!isOpen) return null
 
-  const currentUserName = groupMembers?.[currentUserId]?.name || 'You'
+  const isEditMode = editingRecord && editingRecord.id
+  const payerName = groupMembers?.[formData.from]?.name || ''
   const recipientName = groupMembers?.[formData.to]?.name || ''
 
   return (
@@ -211,7 +263,7 @@ const SettlementRecordModal = ({
       <div className="settlement-record-modal" ref={modalRef}>
         {/* Header */}
         <div className="modal-header">
-          <h2>{t('settlement.recordPayment') || 'Record Payment'}</h2>
+          <h2>{isEditMode ? (t('settlement.editPayment') || 'Edit Payment') : (t('settlement.recordPayment') || 'Record Payment')}</h2>
           <button
             className="close-button"
             onClick={onClose}
@@ -238,12 +290,27 @@ const SettlementRecordModal = ({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="settlement-form">
-          {/* From - Current User (Display only) */}
+          {/* From - Select Payer */}
           <div className="form-group">
-            <label>{t('settlement.from') || 'From'}</label>
-            <div className="form-value">
-              {currentUserName}
-            </div>
+            <label htmlFor="from">
+              {t('settlement.from') || 'From'} <span className="required">*</span>
+            </label>
+            <select
+              id="from"
+              name="from"
+              value={formData.from}
+              onChange={handlePayerChange}
+              className={`form-select ${errors.from ? 'error' : ''}`}
+              disabled={isLoading}
+            >
+              <option value="">{t('settlement.selectPayer') || 'Select payer...'}</option>
+              {availablePayers.map((payer) => (
+                <option key={payer.id} value={payer.id}>
+                  {payer.name}
+                </option>
+              ))}
+            </select>
+            {errors.from && <span className="error-text">{errors.from}</span>}
           </div>
 
           {/* To - Select Recipient */}
@@ -343,10 +410,10 @@ const SettlementRecordModal = ({
           </div>
 
           {/* Payment Preview */}
-          {formData.to && formData.amount && (
+          {formData.from && formData.to && formData.amount && (
             <div className="payment-preview">
               <div className="preview-item">
-                <span className="preview-label">{currentUserName}</span>
+                <span className="preview-label">{payerName}</span>
                 <span className="preview-arrow">→</span>
                 <span className="preview-label">{recipientName}</span>
               </div>
@@ -376,6 +443,8 @@ const SettlementRecordModal = ({
                   <BiLoader className="spinner" />
                   {t('common.saving') || 'Saving...'}
                 </>
+              ) : isEditMode ? (
+                t('settlement.updatePayment') || 'Update Payment'
               ) : (
                 t('settlement.recordPayment') || 'Record Payment'
               )}

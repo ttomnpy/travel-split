@@ -27,6 +27,7 @@ function GroupDetailPage({ onLogout }) {
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false)
   const [showSettlementRecordModal, setShowSettlementRecordModal] = useState(false)
+  const [editingSettlementRecord, setEditingSettlementRecord] = useState(null)
   const [activeTab, setActiveTab] = useState('members')
   const [expandedExpense, setExpandedExpense] = useState(null)
   const [expenseToDelete, setExpenseToDelete] = useState(null)
@@ -206,6 +207,12 @@ function GroupDetailPage({ onLogout }) {
   const handleSettlementRecorded = () => {
     // Settlement records will be updated automatically via real-time listener
     debugLog('Settlement recorded, real-time listener will update the records')
+    setEditingSettlementRecord(null)
+  }
+
+  const handleEditSettlementRecord = (record) => {
+    setEditingSettlementRecord(record)
+    setShowSettlementRecordModal(true)
   }
 
   const handleDeleteSettlementRecord = async (recordId) => {
@@ -674,7 +681,10 @@ function GroupDetailPage({ onLogout }) {
                 settlementRecords={settlementRecords}
                 onOpenRecordModal={() => setShowSettlementRecordModal(true)}
                 onDeleteRecord={handleDeleteSettlementRecord}
+                onEditRecord={handleEditSettlementRecord}
                 isLoading={isLoadingSettlements}
+                isOwner={isOwner}
+                isAdmin={isAdmin}
               />
             </div>
           )}
@@ -712,13 +722,17 @@ function GroupDetailPage({ onLogout }) {
         {/* Settlement Record Modal */}
         <SettlementRecordModal
           isOpen={showSettlementRecordModal}
-          onClose={() => setShowSettlementRecordModal(false)}
+          onClose={() => {
+            setShowSettlementRecordModal(false)
+            setEditingSettlementRecord(null)
+          }}
           groupId={groupId}
           groupMembers={members}
           groupCurrency={group?.currency}
           currentUserId={user?.uid}
           onSettlementRecorded={handleSettlementRecorded}
           settlements={settlementsForModal}
+          editingRecord={editingSettlementRecord}
         />
 
         {/* Delete Confirmation Modal */}

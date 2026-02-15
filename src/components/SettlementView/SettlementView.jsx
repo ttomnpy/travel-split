@@ -12,7 +12,10 @@ function SettlementView({
   settlementRecords,
   onOpenRecordModal,
   onDeleteRecord,
-  isLoading
+  onEditRecord,
+  isLoading,
+  isOwner,
+  isAdmin
 }) {
   if (!settlements || settlements.length === 0) {
     return (
@@ -42,8 +45,11 @@ function SettlementView({
             formatCurrency={formatCurrency}
             currentUserId={currentUserId}
             onDeleteRecord={onDeleteRecord}
+            onEditRecord={onEditRecord}
             t={t}
             isLoading={isLoading}
+            isOwner={isOwner}
+            isAdmin={isAdmin}
           />
         )}
       </div>
@@ -134,8 +140,11 @@ function SettlementView({
           formatCurrency={formatCurrency}
           currentUserId={currentUserId}
           onDeleteRecord={onDeleteRecord}
+          onEditRecord={onEditRecord}
           t={t}
           isLoading={isLoading}
+          isOwner={isOwner}
+          isAdmin={isAdmin}
         />
       )}
     </div>

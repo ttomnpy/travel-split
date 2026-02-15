@@ -1,5 +1,5 @@
 import React from 'react'
-import { BiTrash, BiCalendar, BiMoney, BiComment } from 'react-icons/bi'
+import { BiTrash, BiCalendar, BiMoney, BiComment, BiEdit } from 'react-icons/bi'
 import { getMemberDisplayName } from '../../utils/displayNameHelper'
 import './SettlementHistory.css'
 
@@ -9,8 +9,11 @@ function SettlementHistory({
   formatCurrency,
   currentUserId,
   onDeleteRecord,
+  onEditRecord,
   t,
-  isLoading
+  isLoading,
+  isOwner,
+  isAdmin
 }) {
   if (!settlementRecords || settlementRecords.length === 0) {
     return (
@@ -28,6 +31,12 @@ function SettlementHistory({
   const handleDeleteClick = (recordId, record) => {
     if (onDeleteRecord) {
       onDeleteRecord(recordId, record)
+    }
+  }
+
+  const handleEditClick = (record) => {
+    if (onEditRecord) {
+      onEditRecord(record)
     }
   }
 
@@ -109,16 +118,26 @@ function SettlementHistory({
                 )}
               </div>
 
-              {/* Delete Button (if user is involved or admin) */}
-              {isUserInvolved && (
-                <button
-                  className="delete-button"
-                  onClick={() => handleDeleteClick(record.id, record)}
-                  disabled={isLoading}
-                  title={t('common.delete') || 'Delete'}
-                >
-                  <BiTrash size={18} />
-                </button>
+              {/* Edit and Delete Buttons (if user is involved, owner, or admin) */}
+              {(isUserInvolved || isOwner || isAdmin) && (
+                <div className="record-actions">
+                  <button
+                    className="edit-button"
+                    onClick={() => handleEditClick(record)}
+                    disabled={isLoading}
+                    title={t('common.edit') || 'Edit'}
+                  >
+                    <BiEdit size={18} />
+                  </button>
+                  <button
+                    className="delete-button"
+                    onClick={() => handleDeleteClick(record.id, record)}
+                    disabled={isLoading}
+                    title={t('common.delete') || 'Delete'}
+                  >
+                    <BiTrash size={18} />
+                  </button>
+                </div>
               )}
             </div>
           )

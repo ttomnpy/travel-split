@@ -68,6 +68,22 @@ const AddExpenseModal = ({ isOpen, onClose, groupId, groupMembers, groupCurrency
     }
   }, [isOpen])
 
+  // Prevent scroll wheel from changing number input values
+  useEffect(() => {
+    const handleWheel = (e) => {
+      if (e.target.type === 'number') {
+        e.preventDefault()
+      }
+    }
+
+    if (modalRef.current) {
+      modalRef.current.addEventListener('wheel', handleWheel, { passive: false })
+      return () => {
+        modalRef.current?.removeEventListener('wheel', handleWheel)
+      }
+    }
+  }, [])
+
   // Sync participants with groupMembers whenever groupMembers changes
   useEffect(() => {
     setFormData((prev) => {

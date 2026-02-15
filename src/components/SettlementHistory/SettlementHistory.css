@@ -49,13 +49,14 @@
   background: var(--bg-darker, rgba(255, 255, 255, 0.02));
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  padding: 12px 48px 12px 16px;
+  padding: 16px 100px 16px 16px;
   transition: all 0.2s ease;
   position: relative;
   overflow: visible;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-height: 80px;
 }
 
 .settlement-record:hover {
@@ -190,31 +191,64 @@
   color: var(--text-primary);
 }
 
-/* Delete Button */
-.delete-button {
+/* Record Actions */
+.record-actions {
   position: absolute;
-  top: 12px;
+  top: 50%;
   right: 12px;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 6px;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+  z-index: 10;
+}
+
+/* Edit Button */
+.edit-button {
   background: none;
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
-  padding: 4px 8px;
+  padding: 6px 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 4px;
   transition: all 0.2s;
-  opacity: 0;
+  min-width: 32px;
+  min-height: 32px;
 }
 
-.settlement-record:hover .delete-button {
-  opacity: 1;
+.edit-button:hover:not(:disabled) {
+  color: var(--primary-accent);
+  background-color: rgba(255, 191, 0, 0.15);
+}
+
+.edit-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Delete Button */
+.delete-button {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+  min-width: 32px;
+  min-height: 32px;
 }
 
 .delete-button:hover:not(:disabled) {
   color: #ef4444;
-  background-color: rgba(239, 68, 68, 0.1);
+  background-color: rgba(239, 68, 68, 0.15);
 }
 
 .delete-button:disabled {
@@ -227,6 +261,11 @@
   .settlement-history {
     margin-top: 20px;
     padding: 12px;
+  }
+
+  .settlement-record {
+    padding: 14px 80px 14px 12px;
+    min-height: 75px;
   }
 
   .record-header {
@@ -261,5 +300,16 @@
 
   .detail-item.full-width {
     grid-column: 1 / -1;
+  }
+
+  .record-actions {
+    right: 8px;
+  }
+
+  .edit-button,
+  .delete-button {
+    min-width: 28px;
+    min-height: 28px;
+    padding: 4px 6px;
   }
 }
