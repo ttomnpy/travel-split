@@ -352,7 +352,7 @@ export const addDummyMember = async (groupId, memberName, userId, userRole = 'me
  * Claim dummy member by real user
  * Links dummy member ID to real user ID
  */
-export const claimDummyMember = async (groupId, dummyId, userId, userName, userEmail) => {
+export const claimDummyMember = async (groupId, dummyId, userId, userName, userEmail, userPhotoURL = null) => {
   try {
     const groupRef = ref(rtdb, `groups/${groupId}`)
     const groupSnapshot = await get(groupRef)
@@ -389,7 +389,7 @@ export const claimDummyMember = async (groupId, dummyId, userId, userName, userE
         type: 'real',
         name: userName,
         email: userEmail || '',
-        photo: null,
+        photo: userPhotoURL || existingMember.photo || null,
         // Clear removal information
         removedAt: undefined,
         removedBy: undefined,
@@ -403,7 +403,7 @@ export const claimDummyMember = async (groupId, dummyId, userId, userName, userE
         type: 'real',
         name: userName,
         email: userEmail || '',
-        photo: null,
+        photo: userPhotoURL || null,
         role: dummy.role || 'member',
         joinedAt: now,
         linkedFrom: dummyId

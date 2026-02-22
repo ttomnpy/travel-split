@@ -197,7 +197,8 @@ function JoinGroupPage({ onLogout = () => {} }) {
         dummyId,
         user.uid,
         displayName,
-        user.email
+        user.email,
+        user.photoURL || null
       )
 
       setSuccessMessage(
