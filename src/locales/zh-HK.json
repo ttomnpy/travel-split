@@ -132,7 +132,7 @@
     "paidBy": "由以下人士支付",
     "involvedMembers": "涉及成員",
     "paymentDetails": "支付詳情",
-    "owes": "需付",
+    "owes": "應付",
     "location": "地點",
     "deleteExpenseError": "無法刪除開支。請重試。",
     "deleteExpenseTitle": "刪除開支？",

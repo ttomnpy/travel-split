@@ -126,8 +126,9 @@ function JoinGroupPage({ onLogout = () => {} }) {
       const group = groupSnapshot.val()
       debugLog('Group data loaded', { groupId, memberCount: Object.keys(group.members || {}).length })
 
-      // Check if user is already a member
-      if (group.members?.[user.uid]) {
+      // Check if user is already an active member (not removed/kicked)
+      const existingMember = group.members?.[user.uid]
+      if (existingMember && existingMember.status !== 'removed') {
         setError(t('joinGroup.alreadyMember') || 'You are already a member of this group')
         setIsLoading(false)
         return
