@@ -28,7 +28,7 @@
   height: 3rem;
   border-radius: 0.75rem;
   overflow: hidden;
-  background-color: rgba(255, 191, 0, 0.1);
+  background-color: var(--primary-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -43,7 +43,7 @@
 .avatar-initials {
   font-size: 1rem;
   font-weight: 700;
-  color: var(--primary-accent);
+  color: #000;
 }
 
 /* ========================================

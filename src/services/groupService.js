@@ -419,47 +419,101 @@ export const claimDummyMember = async (groupId, dummyId, userId, userName, userE
     // Remove dummy member
     updates[`groups/${groupId}/members/${dummyId}`] = null
 
-    // Update expenses: replace dummyId with userId in by, for, and details
+    // Update expenses: replace dummyId with userId in payers, participants, and splitDetails
     const expenses = group.expenses || {}
     for (const [expenseId, expense] of Object.entries(expenses)) {
       const updatedExpense = { ...expense }
-      
-      // Replace in 'by' field
+      let hasChanges = false
+
+      // Replace in 'payers' object (current schema)
+      if (updatedExpense.payers && updatedExpense.payers[dummyId] !== undefined) {
+        const payerData = updatedExpense.payers[dummyId]
+        updatedExpense.payers = { ...updatedExpense.payers }
+        delete updatedExpense.payers[dummyId]
+        updatedExpense.payers[userId] = { ...payerData, name: userName }
+        hasChanges = true
+      }
+
+      // Replace in 'participants' array (current schema)
+      if (Array.isArray(updatedExpense.participants) && updatedExpense.participants.includes(dummyId)) {
+        updatedExpense.participants = updatedExpense.participants.map(id => id === dummyId ? userId : id)
+        hasChanges = true
+      }
+
+      // Replace in 'splitDetails' object keys (current schema)
+      if (updatedExpense.splitDetails && updatedExpense.splitDetails[dummyId] !== undefined) {
+        const amount = updatedExpense.splitDetails[dummyId]
+        updatedExpense.splitDetails = { ...updatedExpense.splitDetails }
+        delete updatedExpense.splitDetails[dummyId]
+        updatedExpense.splitDetails[userId] = amount
+        hasChanges = true
+      }
+
+      // Also handle legacy schema fields for backward compatibility
       if (updatedExpense.by === dummyId) {
         updatedExpense.by = userId
         updatedExpense.byName = userName
+        hasChanges = true
       }
-
-      // Replace in 'for' array
-      if (Array.isArray(updatedExpense.for)) {
+      if (Array.isArray(updatedExpense.for) && updatedExpense.for.includes(dummyId)) {
         updatedExpense.for = updatedExpense.for.map(id => id === dummyId ? userId : id)
+        hasChanges = true
       }
-
-      // Replace in details object keys
       if (updatedExpense.details && updatedExpense.details[dummyId] !== undefined) {
         const amount = updatedExpense.details[dummyId]
+        updatedExpense.details = { ...updatedExpense.details }
         delete updatedExpense.details[dummyId]
         updatedExpense.details[userId] = amount
+        hasChanges = true
       }
 
-      updates[`groups/${groupId}/expenses/${expenseId}`] = updatedExpense
+      if (hasChanges) {
+        updates[`groups/${groupId}/expenses/${expenseId}`] = updatedExpense
+      }
     }
 
-    // Update settlements
+    // Update settlement records (current schema uses settlementRecords)
+    const settlementRecords = group.settlementRecords || {}
+    for (const [recordId, record] of Object.entries(settlementRecords)) {
+      const updatedRecord = { ...record }
+      let recordChanged = false
+
+      if (updatedRecord.from === dummyId) {
+        updatedRecord.from = userId
+        updatedRecord.fromName = userName
+        recordChanged = true
+      }
+      if (updatedRecord.to === dummyId) {
+        updatedRecord.to = userId
+        updatedRecord.toName = userName
+        recordChanged = true
+      }
+
+      if (recordChanged) {
+        updates[`groups/${groupId}/settlementRecords/${recordId}`] = updatedRecord
+      }
+    }
+
+    // Also handle legacy settlements field for backward compatibility
     const settlements = group.settlements || {}
     for (const [settlementId, settlement] of Object.entries(settlements)) {
       const updatedSettlement = { ...settlement }
+      let settlementChanged = false
       
       if (updatedSettlement.from === dummyId) {
         updatedSettlement.from = userId
         updatedSettlement.fromName = userName
+        settlementChanged = true
       }
       if (updatedSettlement.to === dummyId) {
         updatedSettlement.to = userId
         updatedSettlement.toName = userName
+        settlementChanged = true
       }
 
-      updates[`groups/${groupId}/settlements/${settlementId}`] = updatedSettlement
+      if (settlementChanged) {
+        updates[`groups/${groupId}/settlements/${settlementId}`] = updatedSettlement
+      }
     }
 
     // Update summary balances
